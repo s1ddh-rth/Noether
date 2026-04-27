@@ -1,0 +1,154 @@
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# Test / type / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.cache/
+nosetests.xml
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- Node / Next.js --------------------------------------------------------
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.next/
+out/
+.turbo/
+.swc/
+*.tsbuildinfo
+next-env.d.ts
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- IDE / editors ---------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS --------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# --- Secrets / env ---------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# --- Logs / runtime --------------------------------------------------------
+*.log
+logs/
+pids/
+*.pid
+
+# --- Data (DVC-tracked, see SPEC §6) --------------------------------------
+data/
+!data/.gitkeep
+!data/README.md
+
+# --- ML artefacts ----------------------------------------------------------
+mlruns/
+mlflow/
+artifacts/
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.joblib
+*.pkl
+*.h5
+*.tflite
+# allow checked-in baseline model placeholders
+!services/inference/models/.gitkeep
+
+# --- DVC -------------------------------------------------------------------
+.dvc/cache
+.dvc/tmp
+.dvc/plots
+
+# --- Docker / Compose ------------------------------------------------------
+docker-compose.override.yml
+*.local.yml
+
+# Local volumes mounted from compose
+.volumes/
+volumes/
+pgdata/
+redpanda-data/
+grafana-data/
+
+# --- Helm / Kubernetes -----------------------------------------------------
+charts/**/charts/
+charts/**/Chart.lock
+*.kubeconfig
+kubeconfig
+
+# --- Terraform -------------------------------------------------------------
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# --- Claude Code (local-only) ---------------------------------------------
+.claude/settings.local.json
+.claude/.credentials.json
+.claude/projects/
+.claude/statsig/
+.claude/todos/
+.claude/shell-snapshots/
+
+# --- Misc ------------------------------------------------------------------
+*.bak
+*.tmp
+.tmp/
+tmp/

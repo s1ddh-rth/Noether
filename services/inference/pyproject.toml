@@ -1,0 +1,31 @@
+[project]
+name = "noether-svc-inference"
+version = "0.0.0"
+description = "FastAPI inference service exposing /forecast for plant tags."
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "noether-ingest",
+    "noether-storage",
+    "noether-forecasting",
+    "fastapi>=0.115,<0.116",
+    "uvicorn[standard]>=0.32,<0.33",
+    "structlog>=24.4,<25",
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+    "httpx>=0.27,<0.28",
+]
+
+[project.scripts]
+noether-inference = "noether_svc_inference.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["noether_svc_inference"]
+
+[tool.uv.sources]
+noether-ingest = { workspace = true }
+noether-storage = { workspace = true }
+noether-forecasting = { workspace = true }

@@ -1,0 +1,24 @@
+[project]
+name = "noether-storage"
+version = "0.0.0"
+description = "Timescale storage layer: schema, migrations, query helpers."
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "noether-ingest",
+    "asyncpg>=0.30,<0.31",
+    "sqlalchemy[asyncio]>=2.0,<2.1",
+    "alembic>=1.14,<1.15",
+    "pandas>=2.2,<2.3",
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["noether_storage"]
+
+[tool.uv.sources]
+noether-ingest = { workspace = true }

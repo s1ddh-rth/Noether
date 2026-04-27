@@ -1,0 +1,84 @@
+[project]
+name = "noether"
+version = "0.0.0"
+description = "Open-source reference architecture for industrial AI copilots."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Noether contributors" }]
+dependencies = [
+    "noether-ingest",
+    "noether-storage",
+    "noether-forecasting",
+    "noether-svc-ingest",
+    "noether-svc-storage-consumer",
+    "noether-svc-inference",
+]
+
+[dependency-groups]
+dev = [
+    "black==24.10.0",
+    "ruff==0.7.4",
+    "mypy==1.13.0",
+    "pre-commit==4.0.1",
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==6.0.0",
+    "pytest-randomly==3.16.0",
+    "testcontainers[kafka,postgres]==4.8.2",
+    "ipython==8.29.0",
+]
+
+[tool.uv.workspace]
+members = ["libs/*", "services/*"]
+
+[tool.uv.sources]
+noether-ingest = { workspace = true }
+noether-storage = { workspace = true }
+noether-forecasting = { workspace = true }
+noether-svc-ingest = { workspace = true }
+noether-svc-storage-consumer = { workspace = true }
+noether-svc-inference = { workspace = true }
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "C4", "SIM", "RUF"]
+ignore = ["E501"]  # line length handled by black
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+disallow_untyped_decorators = false
+plugins = ["pydantic.mypy"]
+exclude = ["build/", "dist/", ".venv/"]
+
+[[tool.mypy.overrides]]
+module = ["lightgbm.*", "aiokafka.*", "asyncpg.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["libs", "services", "eval"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "integration: requires docker compose stack",
+    "slow: takes more than 1s",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["libs", "services"]
+omit = ["*/tests/*", "*/__main__.py"]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true
+skip_covered = false

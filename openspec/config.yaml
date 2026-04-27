@@ -1,0 +1,82 @@
+schema: spec-driven
+
+context: |
+  Project: Noether — open-source reference architecture for industrial AI copilots.
+  Real-time anomaly detection, forecasting, and natural-language reasoning over
+  simulated plant data. Physics-grounded, air-gappable, runs on a laptop or k3s.
+
+  Source of truth: SPEC.md at the repo root. If conversation, code, or any
+  generated artifact diverges from SPEC.md, SPEC.md wins. Update SPEC.md
+  deliberately before changing scope.
+
+  Tech stack (locked — do not propose alternatives unless explicitly asked):
+    - Python 3.11, managed with uv (lockfile committed)
+    - FastAPI for inference services
+    - PyTorch (DL) + scikit-learn / LightGBM (classical). No TensorFlow/Keras.
+    - Forecasting: Nixtla neuralforecast (PatchTST) + native LightGBM
+    - Anomaly: PyOD (Isolation Forest, autoencoder, Mahalanobis) + EWMA
+    - Streaming: Redpanda (Kafka API)
+    - TS database: TimescaleDB hypertables
+    - Vector DB: Qdrant; Reranker: BGE-reranker-base; Embeddings: BGE-base/M3
+    - Graph DB: Neo4j Community (backs Graphiti memory)
+    - Agent orchestration: LangGraph; Memory: Graphiti
+    - LLM default: Ollama (Llama 3.3 / Qwen 2.5). Optional cloud LLMs behind a flag.
+    - Drift: Evidently AI; Eval: RAGAS + custom forecast/AD harness
+    - Tracking: MLflow; Data versioning: DVC
+    - Frontend: Next.js 14 + TypeScript + Tailwind + Recharts (App Router)
+    - Observability: Prometheus + Grafana
+    - Containers: Docker; K8s: k3s via k3d; Packaging: Helm 3
+    - CI/CD: GitHub Actions; Registry: GHCR
+
+  Hard rules:
+    - Air-gap: every component must work with LLM_BACKEND=ollama and zero
+      outbound network calls. OFFLINE_MODE=1 enforces no external DNS.
+    - Cost: zero paid services in the default config.
+    - Library discipline: use OSS, do not reimplement. PyOD for AD, Nixtla for
+      forecasting, Graphiti for memory, RAGAS for eval. If you find yourself
+      writing >30 lines of "core algorithm," stop and ask whether a library does it.
+    - Adding a new top-level dependency requires its own change proposal — never
+      a silent `uv add`.
+    - No `print()` in production code — structlog with JSON output.
+    - No bare `except:`. Cross-service errors are typed Pydantic models.
+    - All config via pydantic-settings BaseSettings; .env.example committed.
+
+  Project structure (target):
+    services/{ingest,inference,agent,frontend}
+    libs/{forecasting,anomaly,rag,memory}
+    eval/{forecast_harness.py,anomaly_harness.py,rag_ragas.py}
+    charts/noether/  (Helm)
+    docs/{architecture.md,benchmarks.md,deployment.md}
+
+  Datasets (all public, all OSS-licensed): pyTEP (TEP), SKAB, NASA CMAPSS,
+  NASA tech reports + DOE process safety docs (RAG corpus), self-generated
+  draw.io P&IDs (multimodal RAG).
+
+  Build order — work proceeds milestone-by-milestone (SPEC §8). Do not skip
+  ahead. Do not implement until the human approves the relevant proposal.
+
+rules:
+  proposal:
+    - Cite the SPEC.md section(s) the change derives from.
+    - List Impact in terms of services/, libs/, charts/, eval/, docs/ paths.
+    - If the change introduces a new top-level dependency, name it explicitly
+      under "Impact" and justify why no existing locked library covers it.
+    - Out-of-scope items from SPEC §9 must not appear as goals.
+  design:
+    - Non-Goals must explicitly include items from SPEC §9 that a reader might
+      otherwise expect to be in scope.
+    - Decisions must reference the locked tech stack from SPEC §5; do not
+      introduce alternatives without flagging them as a stack change.
+    - Risks should reference SPEC §11 where applicable.
+  tasks:
+    - Task groups should map to deliverable units that fit inside one PR.
+    - Every change must include a "Tests" task group (pytest for Python,
+      Vitest for frontend, with >=70% coverage on new code in libs/ and services/).
+    - 'Every change must include a "Docs" task group: service-level README, and a SPEC.md update only if scope is genuinely changing.'
+    - Every change must include an "Eval / Benchmarks" task group when the
+      change touches a model or retrieval pipeline (forecast/AD/RAG).
+  specs:
+    - Requirements must be testable. Prefer measurable thresholds over
+      adjectives (e.g. "p95 latency < 500ms" rather than "fast").
+    - Scenarios use Given/When/Then; reference concrete tags, datasets, or
+      endpoints from SPEC where possible.

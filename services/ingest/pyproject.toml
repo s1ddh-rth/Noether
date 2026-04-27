@@ -1,0 +1,25 @@
+[project]
+name = "noether-svc-ingest"
+version = "0.0.0"
+description = "pyTEP-style replayer publishing plant tag samples to Redpanda."
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "noether-ingest",
+    "aiokafka>=0.12,<0.13",
+    "structlog>=24.4,<25",
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+]
+
+[project.scripts]
+noether-ingest = "noether_svc_ingest.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["noether_svc_ingest"]
+
+[tool.uv.sources]
+noether-ingest = { workspace = true }

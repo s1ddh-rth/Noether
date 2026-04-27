@@ -1,0 +1,204 @@
+# =============================================================================
+# Noether — local dev stack (SPEC §8 Milestone 1)
+#
+# Usage:
+#     cp .env.example .env
+#     docker compose --profile core up -d
+#
+# Profiles:
+#     core  — ingest + storage + inference + dependencies (default for M1)
+#     eval  — adds a one-shot job container that runs the forecast harness
+# =============================================================================
+name: noether
+
+x-common-env: &common-env
+  OFFLINE_MODE: ${OFFLINE_MODE:-1}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+services:
+  # ------------------------------------------------------------------ Kafka
+  redpanda:
+    image: redpandadata/redpanda:v24.2.18
+    container_name: noether-redpanda
+    profiles: [core, eval]
+    command:
+      - redpanda
+      - start
+      - --node-id=0
+      - --mode=dev-container
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092
+      - --rpc-addr=0.0.0.0:33145
+      - --advertise-rpc-addr=redpanda:33145
+    ports:
+      - "9092:9092"
+      - "9644:9644"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health --exit-when-healthy"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    networks: [noether]
+
+  # -------------------------------------------------------------- TimescaleDB
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    container_name: noether-timescaledb
+    profiles: [core, eval]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-noether}
+      POSTGRES_USER: ${POSTGRES_USER:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-noether} -d ${POSTGRES_DB:-noether}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [noether]
+
+  # ------------------------------------- one-shot: alembic upgrade head
+  migrator:
+    build:
+      context: .
+      dockerfile: services/storage-consumer/Dockerfile
+    container_name: noether-migrator
+    profiles: [core, eval]
+    environment:
+      <<: *common-env
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-noether}
+      POSTGRES_USER: ${POSTGRES_USER:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+    entrypoint: ["python", "-m", "noether_storage.migrations.run"]
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: "no"
+    networks: [noether]
+
+  # ----------------------------------------------------------- ingest service
+  ingest:
+    build:
+      context: .
+      dockerfile: services/ingest/Dockerfile
+    container_name: noether-ingest
+    profiles: [core, eval]
+    environment:
+      <<: *common-env
+      KAFKA_BOOTSTRAP: redpanda:9092
+      KAFKA_TOPIC_PLANT_TAGS: ${KAFKA_TOPIC_PLANT_TAGS:-plant.tags}
+      REPLAY_HZ: ${REPLAY_HZ:-1.0}
+      SIM_SEED: ${SIM_SEED:-42}
+      FAULT_PROFILE: ${FAULT_PROFILE:-none}
+      FAULT_START_S: ${FAULT_START_S:-0}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks: [noether]
+
+  # ------------------------------------------------- Kafka -> Timescale loader
+  storage-consumer:
+    build:
+      context: .
+      dockerfile: services/storage-consumer/Dockerfile
+    container_name: noether-storage-consumer
+    profiles: [core, eval]
+    environment:
+      <<: *common-env
+      KAFKA_BOOTSTRAP: redpanda:9092
+      KAFKA_TOPIC_PLANT_TAGS: ${KAFKA_TOPIC_PLANT_TAGS:-plant.tags}
+      KAFKA_GROUP_ID: noether-storage-consumer
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-noether}
+      POSTGRES_USER: ${POSTGRES_USER:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    networks: [noether]
+
+  # --------------------------------------------------- inference (FastAPI)
+  inference:
+    build:
+      context: .
+      dockerfile: services/inference/Dockerfile
+    container_name: noether-inference
+    profiles: [core, eval]
+    environment:
+      <<: *common-env
+      INFERENCE_HOST: 0.0.0.0
+      INFERENCE_PORT: 8000
+      MODEL_DIR: /app/models
+      INFERENCE_API_KEY: ${INFERENCE_API_KEY:-changeme-please}
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-noether}
+      POSTGRES_USER: ${POSTGRES_USER:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [noether]
+
+  # ------------------------------------------------------------------ Grafana
+  grafana:
+    image: grafana/grafana-oss:11.3.1
+    container_name: noether-grafana
+    profiles: [core, eval]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_FEATURE_TOGGLES_ENABLE: ""
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks: [noether]
+
+  # ---------------------------- one-shot eval harness (profile: eval)
+  forecast-eval:
+    build:
+      context: .
+      dockerfile: services/inference/Dockerfile
+    container_name: noether-forecast-eval
+    profiles: [eval]
+    environment:
+      <<: *common-env
+      MODEL_DIR: /app/models
+    entrypoint: ["python", "-m", "eval.forecast_harness"]
+    volumes:
+      - ./eval/results:/app/eval/results
+    networks: [noether]
+
+volumes:
+  redpanda-data:
+  timescaledb-data:
+  grafana-data:
+
+networks:
+  noether:
+    driver: bridge
