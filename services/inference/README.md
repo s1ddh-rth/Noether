@@ -1,15 +1,16 @@
 # services/inference
 
-FastAPI inference service. M1 ships `/forecast` only; `/anomaly` and `/explain`
-land in subsequent milestones.
+FastAPI inference service for forecasting + anomaly scoring + explanation.
 
 ## Endpoints
 
 | Path | Auth | Notes |
 |---|---|---|
-| `GET /healthz` | none | liveness |
-| `GET /readyz` | none | readiness; lists known tags |
-| `POST /forecast` | `X-API-Key` | horizon-ahead prediction |
+| `GET /healthz` | none | liveness probe |
+| `GET /readyz` | none | readiness; lists tags with forecast artefacts |
+| `POST /forecast` | `X-API-Key` | horizon-ahead prediction (LGBM / PatchTST / ensemble) |
+| `POST /anomaly` | `X-API-Key` | score a tag window with the AD ensemble |
+| `POST /explain` | `X-API-Key` | per-tag SHAP-blended contributions for a stored alert |
 
 ### `POST /forecast`
 
@@ -33,23 +34,55 @@ Response:
   "point": 13.21,
   "lower": 12.85,
   "upper": 13.57,
-  "model_version": "lgbm-v0-seed42-h30",
+  "model_version": "ensemble-v0-seed42-h30",
+  "model_kind": "ensemble",
   "latency_ms": 7
 }
 ```
 
-## Models
+The registry resolves `<MODEL_DIR>/<tag>.{ensemble,patchtst,lgbm}` in priority
+order — drop a `.ensemble` artefact and `/forecast` automatically prefers it.
+See [`libs/forecasting/README.md`](../../libs/forecasting/README.md) for how
+to train each kind.
 
-The Docker image bakes in baseline forecasters for `XMEAS_1`, `XMEAS_7`,
-`XMEAS_13` at build time (`noether_forecasting.training`). Re-train locally
-with:
+### `POST /anomaly`
 
+```json
+{
+  "tags": ["XMEAS_1", "XMEAS_2", ..., "XMV_2"],
+  "start": "2026-04-28T10:00:00Z",
+  "end":   "2026-04-28T10:01:00Z"
+}
 ```
-python -m noether_forecasting.training --tag XMEAS_5 --output models/xmeas_5.lgbm
+
+Response carries the rank-normalised ensemble score, per-detector breakdown,
+and the boolean alert flag:
+
+```json
+{
+  "request_id": "uuid",
+  "score": 0.83,
+  "detectors": { "iforest": 0.71, "mahalanobis": 0.83, "ewma": 0.42 },
+  "tags": ["XMEAS_1", ...],
+  "alert": true,
+  "latency_ms": 12
+}
 ```
 
-The service lazy-loads each artifact on first request to that tag and caches
-it in process memory.
+`503` until the [`anomaly-detector` service](../anomaly-detector/README.md)
+has fitted a baseline ensemble.
+
+### `POST /explain`
+
+```json
+{ "alert_id": "uuid-from-tag_anomalies" }
+```
+
+Returns per-tag contributions sorted by magnitude descending, rescaled so
+their absolute values sum to the alert score within ±5%. Isolation-Forest
+contributions come from `shap.TreeExplainer`; Mahalanobis and EWMA use
+analytic per-tag breakdowns. See
+[`libs/anomaly/README.md`](../../libs/anomaly/README.md) for details.
 
 ## Env vars
 
@@ -60,6 +93,7 @@ it in process memory.
 | `MODEL_DIR` | `/app/models` |
 | `INFERENCE_API_KEY` | `changeme-please` |
 | `FORECAST_HORIZON_MIN` | `30` |
+| `POSTGRES_*` | as elsewhere; required by `/anomaly` and `/explain` |
 
 ## Run
 

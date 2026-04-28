@@ -1,92 +1,234 @@
 # Noether
 
 > **Open-source reference architecture for industrial AI copilots.**
-> Real-time anomaly detection, forecasting, and natural-language reasoning over
-> simulated plant data. Physics-grounded, air-gappable, deployable on a laptop
-> or a k3s cluster.
+> Real-time anomaly detection, forecasting, and (soon) natural-language
+> reasoning over simulated plant data. Physics-grounded, air-gappable,
+> deployable on a laptop or a k3s cluster.
 
-This repo is **work in progress** — see [`SPEC.md`](./SPEC.md) for the full
-project specification and [`docs/architecture.md`](./docs/architecture.md) for
-the current, live system shape.
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](pyproject.toml)
+[![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![spec-driven](https://img.shields.io/badge/spec_driven-OpenSpec-7a52f4.svg)](openspec/)
 
-## Status — Milestone 1 (Foundation)
+---
 
-What's running today via `docker compose --profile core up`:
+## What's in the box (today)
 
-- **Redpanda** — Kafka API for the `plant.tags` stream.
-- **TimescaleDB** — `tag_samples` hypertable, compression + retention policies.
-- **`services/ingest`** — synthetic TEP replayer publishing 52 tags at 1 Hz.
-- **`services/storage-consumer`** — Kafka → Timescale, batched COPY, at-least-once.
-- **`services/inference`** — FastAPI with `POST /forecast` backed by
-  per-tag LightGBM models baked into the image.
-- **Grafana** — starter dashboard reading from Timescale.
+- **Streaming ingest** of 52 plant tags (`XMEAS_1..41` measurements +
+  `XMV_1..11` manipulated variables) at 1 Hz over Redpanda.
+- **Hypertable storage** in TimescaleDB with compression after 7 days +
+  configurable retention (default 90 d).
+- **Forecasting** via a `LightGBM + PatchTST` ensemble, served from a
+  FastAPI `/forecast` endpoint with model-kind dispatch
+  (`.ensemble` &gt; `.patchtst` &gt; `.lgbm` artefacts).
+- **Anomaly detection** with a 3-detector ensemble (Isolation Forest +
+  robust Mahalanobis + EWMA control chart). Streaming worker scores
+  60-s windows every 5 s; results land in the `tag_anomalies` hypertable.
+- **Explainability** via SHAP `TreeExplainer` for the IForest member,
+  analytic per-tag breakdowns for the others, blended into a single
+  ranked attribution returned by `/explain`.
+- **Eval harnesses** for forecasting (naive / LGBM / PatchTST / ensemble
+  × MAE / RMSE / SMAPE) and anomaly detection (precision / recall / F1
+  across six fault scenarios with threshold sweeps).
+- **Grafana** auto-provisioned with a starter `Plant Tags` dashboard
+  reading directly from Timescale.
+- **One command stand-up** — `make up` brings the whole stack online
+  in &lt;60 s after image pull.
 
-Run the forecast eval harness end-to-end (M1 deliverable):
+What's *not* here yet (planned, see [Roadmap](#roadmap)): RAG corpus + agent
+system (M3), Helm chart + drift monitoring + MLflow + CI/CD (M4), real
+Tennessee Eastman simulator (separate change proposal), torch-backed
+AutoEncoder detector.
 
-```
-make eval
-```
-
-This prints a Markdown table of MAE/RMSE for the naive baseline vs. LightGBM
-and writes `eval/results/forecast.json`.
+---
 
 ## Quickstart
 
-```
-git clone git@github-personal:s1ddh-rth/Noether.git
+```bash
+git clone git@github.com:s1ddh-rth/Noether.git
 cd Noether
 cp .env.example .env
-make up        # docker compose --profile core up -d
-make logs      # tail everything
+make up                  # docker compose --profile core up -d
+make logs                # tail every service
 ```
 
-Hit the inference API once the stack is healthy:
+Once everything is healthy:
+
+| What | Where |
+|---|---|
+| Inference API | http://localhost:8000 (`/healthz`, `/readyz`) |
+| Grafana | http://localhost:3000 (admin / admin; `Noether → Plant Tags`) |
+| TimescaleDB | `localhost:5432` (db `noether`, user `noether`) |
+| Redpanda Kafka | `localhost:9092` |
+
+Run the eval harnesses (forecast and anomaly) once the stack has been
+ingesting for a few minutes:
+
+```bash
+make eval                # forecast harness — LGBM vs naive (smoke)
+docker compose --profile eval run --rm forecast-eval \
+    python -m eval.forecast_harness --hours 168   # full 4-model bench
+docker compose --profile eval run --rm anomaly-eval
+```
+
+Tear down:
+
+```bash
+make down                # also drops volumes
+```
+
+See [`docs/deployment.md`](docs/deployment.md) for the k3d / air-gapped
+path (M4).
+
+---
+
+## Architecture
 
 ```
-curl -X POST http://localhost:8000/healthz
-curl http://localhost:8000/readyz
+[ ingest ] ──► Redpanda(plant.tags) ──► [ storage-consumer ] ──► TimescaleDB(tag_samples)
+                                                                       │
+                                                                       ├──► [ anomaly-detector ]
+                                                                       │     fits 3-detector ensemble
+                                                                       │     scores sliding 60s windows
+                                                                       │     writes tag_anomalies
+                                                                       │     persists ensemble.joblib ─┐
+                                                                       │                              │
+                                                                       ▼                              ▼
+                                                                  [ inference (FastAPI) ]  ◄─────────┘
+                                                                  /forecast  /anomaly  /explain
+                                                                       ▲
+                                                                       │
+                                                                  [ Grafana ]  ──── reads from Timescale
 ```
 
-## Layout
+See [`docs/architecture.md`](docs/architecture.md) for the live-vs-stubbed
+breakdown and the M3 / M4 components that aren't yet wired in.
 
-```
-SPEC.md                  # canonical spec — source of truth
-CLAUDE.md                # working conventions for Claude Code
-docker-compose.yml       # M1 dev stack
-Makefile                 # make up / down / test / eval / fmt / lint
+---
 
-libs/
-  ingest/                # noether-ingest: TagSample, SyntheticTEP, structlog setup
-  storage/               # noether-storage: Timescale schema, migrations, query helpers
-  forecasting/           # noether-forecasting: LightGBM forecaster + features
+## Repo layout — and where everything is documented
 
-services/
-  ingest/                # noether-svc-ingest: TEP replayer
-  storage-consumer/      # noether-svc-storage-consumer: Kafka → Timescale
-  inference/             # noether-svc-inference: FastAPI /forecast
+Every component has its own README. The links below point to it; click
+through for endpoints, env vars, and how-to-run/test.
 
-eval/
-  forecast_harness.py    # M1 eval harness — naive vs LightGBM
+### Top-level
 
-openspec/
-  changes/               # 8 OpenSpec change proposals (one per SPEC section 4 component)
-docs/
-  architecture.md
-  benchmarks.md
-  deployment.md
-infra/
-  grafana/provisioning/  # datasources + starter dashboards
-```
+| File | Purpose |
+|---|---|
+| [`SPEC.md`](SPEC.md) | **Canonical project specification.** Source of truth for scope, stack, milestones, and definition of done. |
+| [`CLAUDE.md`](CLAUDE.md) | Working conventions (Python style, OpenSpec workflow, security rules). Derived from `SPEC.md` section 7. |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to propose changes, code style, PR requirements. |
+| [`docker-compose.yml`](docker-compose.yml) | Local dev stack (`core` + `eval` profiles). |
+| [`Makefile`](Makefile) | `make up / down / logs / test / eval / fmt / lint`. |
+| [`.env.example`](.env.example) | Template — copy to `.env` and edit. Covers ingest, storage, inference, anomaly. |
+
+### Libraries (`libs/`)
+
+| Lib | What it does |
+|---|---|
+| [`libs/ingest`](libs/ingest/README.md) | `TagSample` schema, `SyntheticTEP` generator, structlog setup. The wire and simulator layer. |
+| [`libs/storage`](libs/storage/README.md) | Timescale schema (`tag_samples`, `tag_anomalies`), idempotent migrator, asyncpg query helpers (`latest_value`, `range_query`, `pivot`). |
+| [`libs/forecasting`](libs/forecasting/README.md) | `LightGBMForecaster` + `PatchTSTForecaster` + `EnsembleForecaster`, feature engineering, training CLI. |
+| [`libs/anomaly`](libs/anomaly/README.md) | PyOD-backed Isolation Forest + Mahalanobis + EWMA detectors, ensemble scorer, SHAP explainer. |
+
+### Services (`services/`)
+
+| Service | What it does |
+|---|---|
+| [`services/ingest`](services/ingest/README.md) | Drives the synthetic generator at `REPLAY_HZ`, publishes to `plant.tags`. |
+| [`services/storage-consumer`](services/storage-consumer/README.md) | Consumes `plant.tags`, validates, batched `COPY` into `tag_samples`. At-least-once. |
+| [`services/anomaly-detector`](services/anomaly-detector/README.md) | Streaming AD worker. Fits ensemble on baseline, scores 60-s windows every 5 s. |
+| [`services/inference`](services/inference/README.md) | FastAPI app: `/healthz`, `/readyz`, `/forecast`, `/anomaly`, `/explain`. |
+
+### Eval harnesses (`eval/`)
+
+| Harness | What it does |
+|---|---|
+| [`eval/forecast_harness.py`](eval/forecast_harness.py) | Backtest naive / LGBM / PatchTST / ensemble × MAE / RMSE / SMAPE on a held-out synthetic TEP slice. |
+| [`eval/anomaly_harness.py`](eval/anomaly_harness.py) | Six TEP-style fault scenarios, sliding-window scoring, threshold sweep, best-F1 per scenario. |
+
+### Documentation (`docs/`)
+
+| Doc | What it covers |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | Live-vs-stubbed component map, design decisions, what's deferred per milestone. |
+| [`docs/benchmarks.md`](docs/benchmarks.md) | Forecasting + AD benchmark numbers, refreshed by the harnesses. |
+| [`docs/deployment.md`](docs/deployment.md) | Local docker compose, k3d / Helm path, air-gapped operation. |
+
+### OpenSpec (`openspec/changes/`)
+
+The project is built spec-first — every component started life as a change
+proposal under [`openspec/changes/`](openspec/changes/). Proposals contain
+`proposal.md` (why + what), `design.md` (decisions + risks), `tasks.md`
+(implementation plan), and a `specs/<capability>/spec.md` delta.
+
+| Change | Status | Capability |
+|---|---|---|
+| [`add-ingest-pipeline`](openspec/changes/add-ingest-pipeline/) | shipped | `ingest-pipeline` |
+| [`add-timescale-storage`](openspec/changes/add-timescale-storage/) | shipped | `timescale-storage` |
+| [`add-forecasting-service`](openspec/changes/add-forecasting-service/) | shipped (LGBM half) | `forecasting-service` |
+| [`add-patchtst-ensemble`](openspec/changes/add-patchtst-ensemble/) | shipped | modifies `forecasting-service` |
+| [`add-anomaly-detection`](openspec/changes/add-anomaly-detection/) | shipped (sans AutoEncoder) | `anomaly-detection` |
+| [`add-rag-pipeline`](openspec/changes/add-rag-pipeline/) | proposed | `rag-pipeline` (M3) |
+| [`add-agent-system`](openspec/changes/add-agent-system/) | proposed | `agent-system` (M3) |
+| [`add-frontend-dashboard`](openspec/changes/add-frontend-dashboard/) | proposed | `frontend-dashboard` (M3 / M4) |
+| [`add-ops-stack`](openspec/changes/add-ops-stack/) | proposed | `ops-stack` (M4) |
+
+---
+
+## Conventions in one paragraph
+
+Python 3.11, managed by `uv` (workspace mode; per-package `pyproject.toml`
+under `libs/*` and `services/*`). Black + Ruff + mypy strict on new code.
+`structlog` JSON output everywhere — no `print()` in production paths.
+Config exclusively via `pydantic-settings` `BaseSettings`; `.env` is
+gitignored, `.env.example` is committed. Conventional Commits, one branch
+per OpenSpec change (`change/<slug>`), no merge without tests + green CI.
+Air-gap and zero-paid-services are non-negotiable — defaults run with
+`OFFLINE_MODE=1` and `LLM_BACKEND=ollama`. The full set of rules lives in
+[`CLAUDE.md`](CLAUDE.md).
+
+---
+
+## Tech stack
+
+Locked choices (see [`SPEC.md`](SPEC.md) section 5; do not propose alternatives
+without an OpenSpec change):
+
+| Layer | Choice |
+|---|---|
+| Streaming | Redpanda (Kafka API) |
+| TS database | TimescaleDB (Postgres extension) |
+| Forecasting | LightGBM + Nixtla `neuralforecast` (PatchTST) |
+| Anomaly | PyOD (Isolation Forest, MCD-Mahalanobis) + custom EWMA + SHAP |
+| Async / API | FastAPI + uvicorn |
+| Embeddings (M3) | BGE-base / BGE-M3 |
+| Vector DB (M3) | Qdrant |
+| Graph / memory (M3) | Neo4j Community + Graphiti |
+| Agent orchestration (M3) | LangGraph |
+| LLM backend | Ollama (default; air-gapped) |
+| Drift (M4) | Evidently AI |
+| Eval | RAGAS (M3) + custom harnesses (here today) |
+| Tracking (M4) | MLflow |
+| K8s (M4) | k3s via k3d, packaged with Helm 3 |
+| CI / CD (M4) | GitHub Actions, GHCR |
+
+---
 
 ## Roadmap
 
 | Milestone | What | Status |
 |---|---|---|
-| **M1** | docker compose stack + ingest → storage → /forecast + eval | **in progress** |
-| M2 | Anomaly detection ensemble (Isolation Forest + AE + Mahalanobis + EWMA) + SHAP | pending |
-| M3 | RAG (Qdrant + reranker) + LangGraph agent + Graphiti memory | pending |
-| M4 | Helm chart + drift monitoring + MLflow + CI/CD + final polish | pending |
+| **M1** | docker compose stack + ingest → storage → /forecast + eval | **shipped** |
+| **M2** | Anomaly detection ensemble + SHAP + AD eval harness | **shipped (sans AutoEncoder; follow-up)** |
+| M3 | RAG (Qdrant + reranker) + LangGraph agent + Graphiti memory | proposed |
+| M4 | Helm chart + drift monitoring + MLflow + CI/CD + final polish | proposed |
+
+After M4, the repo is `v0.1.0` and the README gains a hero GIF, a 3-minute
+Loom demo, and a benchmarks block populated by CI.
+
+---
 
 ## License
 
-Apache 2.0. See [LICENSE](./LICENSE).
+Apache 2.0 — see [`LICENSE`](LICENSE).
