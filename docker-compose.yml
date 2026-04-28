@@ -189,9 +189,20 @@ services:
     environment:
       <<: *common-env
       MODEL_DIR: /app/models
-    # --hours 48 keeps a smoke run feasible on small dev hosts (~250 MB peak).
-    # The harness default is 24*7 = 168h for proper evaluation runs.
-    entrypoint: ["python", "-m", "eval.forecast_harness", "--hours", "48"]
+    # --hours 48 keeps the smoke run feasible on small dev hosts.
+    # --skip patchtst skips PatchTST + ensemble for the default smoke run
+    # because torch CPU training is the slow / RAM-hungry path. Use:
+    #   docker compose --profile eval run --rm forecast-eval python -m \
+    #     eval.forecast_harness --hours 168
+    # for the full four-model benchmark.
+    entrypoint:
+      - python
+      - -m
+      - eval.forecast_harness
+      - --hours
+      - "48"
+      - --skip
+      - patchtst
     volumes:
       - ./eval/results:/app/eval/results
     networks: [noether]

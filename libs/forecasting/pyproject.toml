@@ -10,9 +10,14 @@ dependencies = [
     "numpy>=1.26,<2.2",
     "pandas>=2.2,<2.3",
     "scikit-learn>=1.5,<1.6",
+    "scipy>=1.13,<2",
     "pyarrow>=18,<19",
     "joblib>=1.4,<2",
     "pydantic>=2.9,<3",
+    # PatchTST via Nixtla (SPEC section 5). torch is a transitive dep but
+    # we pin it explicitly so the inference image gets the CPU build path.
+    "neuralforecast>=1.7,<2",
+    "torch>=2.5,<3",
 ]
 
 [build-system]
