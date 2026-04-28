@@ -29,6 +29,12 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
+          # We don't commit uv.lock yet (it's regenerated on `uv sync`).
+          # Cache by manifests instead so the cache key still varies with deps.
+          cache-dependency-glob: |
+            pyproject.toml
+            **/pyproject.toml
+          ignore-nothing-to-cache: true
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -57,6 +63,12 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
+          # We don't commit uv.lock yet (it's regenerated on `uv sync`).
+          # Cache by manifests instead so the cache key still varies with deps.
+          cache-dependency-glob: |
+            pyproject.toml
+            **/pyproject.toml
+          ignore-nothing-to-cache: true
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}

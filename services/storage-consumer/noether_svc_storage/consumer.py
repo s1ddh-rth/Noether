@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import time
 
@@ -109,7 +108,3 @@ async def run(
                     await pool2.close()
             except (asyncpg.PostgresError, OSError) as exc:
                 log.error("storage_consumer.shutdown_flush_failed", err=str(exc))
-
-
-# Quiet "unused import" lint when asyncio is referenced indirectly via getmany.
-_ = asyncio
