@@ -46,6 +46,11 @@ async def run(settings: IngestSettings, log: BoundLogger) -> None:
             ts = datetime.now(tz=timezone.utc)
             sample_dict = gen.step()
 
+            # Fire all sends for this tick without awaiting per-message ACKs.
+            # The idempotent producer's batch + linger_ms coalesces these into
+            # a small number of in-flight requests; flush() at tick boundary
+            # ensures everything from this tick is durable before we sleep,
+            # preserving at-least-once semantics.
             for tag, value in sample_dict.items():
                 try:
                     sample = TagSample(tag=tag, value=value, ts=ts)
@@ -53,12 +58,14 @@ async def run(settings: IngestSettings, log: BoundLogger) -> None:
                     log.warning("ingest.invalid_sample", tag=tag, value=value, err=str(exc))
                     continue
 
-                await producer.send_and_wait(
+                await producer.send(
                     settings.kafka_topic_plant_tags,
                     value=sample.to_kafka_payload(),
                     key=tag.encode("utf-8"),
                 )
                 published += 1
+
+            await producer.flush()
 
             if published % (len(sample_dict) * 60) == 0:
                 log.info("ingest.progress", published=published)
