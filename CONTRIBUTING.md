@@ -1,6 +1,6 @@
 # Contributing
 
-Noether is being built milestone-by-milestone per `SPEC.md §8`. We follow a
+Noether is being built milestone-by-milestone per `SPEC.md section 8`. We follow a
 spec-first workflow.
 
 ## Before writing code

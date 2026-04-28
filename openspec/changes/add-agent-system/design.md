@@ -4,10 +4,10 @@ LangGraph gives a state-machine view of multi-agent workflows that fits
 operator question-answering well: a router classifies intent, then one
 or more specialised agents fetch data, then a synthesiser composes the
 final response and (when relevant) a Vega-Lite chart. Memory is
-non-trivial — Graphiti is the OSS choice (SPEC §5) and gives temporal
+non-trivial — Graphiti is the OSS choice (SPEC section 5) and gives temporal
 edges out of the box.
 
-The "boring tech wins" rule (SPEC §11) applies hardest here: it is easy
+The "boring tech wins" rule (SPEC section 11) applies hardest here: it is easy
 to over-engineer this surface. We deliberately keep the graph shallow.
 
 ## Goals / Non-Goals
@@ -23,9 +23,9 @@ to over-engineer this surface. We deliberately keep the graph shallow.
 - Default LLM: Ollama with `llama3.3:8b-instruct` or `qwen2.5:7b`.
   Cloud LLMs behind `LLM_BACKEND` env.
 - Demo question must succeed end-to-end with citations and a chart
-  (SPEC §8 Milestone 3).
+  (SPEC section 8 Milestone 3).
 
-**Non-Goals (per SPEC §9):**
+**Non-Goals (per SPEC section 9):**
 - Fine-tuning domain LLMs.
 - Custom embedding training (handled in `add-rag-pipeline`, not here).
 - Real-time websocket streaming to the frontend (poll-based).
@@ -65,5 +65,5 @@ to over-engineer this surface. We deliberately keep the graph shallow.
   per session; document the v0.2 path for richer memory.
 - **Tool fan-out cost:** parallel tool calls multiply local-LLM latency.
   Mitigation: router emits a minimal toolset (1-3 tools) per turn.
-- SPEC §11 risk: scope creep. We resist adding plan-and-execute,
+- SPEC section 11 risk: scope creep. We resist adding plan-and-execute,
   reflexion, or chain-of-thought verifier loops at v0.1.

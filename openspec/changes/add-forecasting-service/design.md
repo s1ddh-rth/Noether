@@ -3,13 +3,13 @@
 TEP variables are autocorrelated, multivariate, and slow-varying. Two
 families of model cover this well: gradient-boosted trees on engineered
 lag/rolling features (LightGBM) and patch-based transformers (PatchTST
-via Nixtla). SPEC §5 locks both libraries; this change wires them up
+via Nixtla). SPEC section 5 locks both libraries; this change wires them up
 without inventing new algorithms.
 
 The first slice (Milestone 1) only needs the LightGBM baseline serving
 behind FastAPI. The PatchTST half can land in the same change but its
 quality is a Milestone-3 concern. The eval harness must work end-to-end
-from day one because SPEC §10 requires published numbers in
+from day one because SPEC section 10 requires published numbers in
 `docs/benchmarks.md`.
 
 ## Goals / Non-Goals
@@ -23,7 +23,7 @@ from day one because SPEC §10 requires published numbers in
 - p95 inference latency on `/forecast` under 500 ms for one variable, 30
   steps ahead, on a laptop CPU.
 
-**Non-Goals (per SPEC §9):**
+**Non-Goals (per SPEC section 9):**
 - Custom PINNs or hand-written deep models.
 - Fine-tuning a foundation model.
 - Online / continual learning.
@@ -55,7 +55,7 @@ from day one because SPEC §10 requires published numbers in
   beyond what `neuralforecast` and `lightgbm` give us.
 - **Forecast horizon:** 30 minutes. With 1 Hz tags this is 1800 steps
   raw — we resample to 1-minute means before forecasting (30 steps).
-- **Targets:** at least 3 TEP variables (SPEC §10). Default config
+- **Targets:** at least 3 TEP variables (SPEC section 10). Default config
   selects `XMEAS_7`, `XMEAS_9`, `XMEAS_11`.
 - **Endpoint:** `POST /forecast` body `{ "tag": str, "horizon_min": int }`,
   returns `{ "tag": str, "ts": [iso...], "yhat": [float...], "lo":
@@ -71,5 +71,5 @@ from day one because SPEC §10 requires published numbers in
   default training set small and document a GPU path. Acceptable for v0.1.
 - Two model families means two deserialisation paths. We accept the
   complexity because the spec named both libraries.
-- SPEC §11 risk: scope creep. We resist adding probabilistic outputs
+- SPEC section 11 risk: scope creep. We resist adding probabilistic outputs
   beyond the simple ensemble residual quantiles at v0.1.

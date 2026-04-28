@@ -2,13 +2,13 @@
 
 The agent system needs a retrieval pipeline to ground answers in
 documentation (NASA tech reports, DOE process safety docs) and on
-P&ID images. SPEC §3 (6) makes RAG explicit. SPEC §4 (component 5)
+P&ID images. SPEC section 3 (6) makes RAG explicit. SPEC section 4 (component 5)
 locks in BGE embeddings, Qdrant, hybrid search with BM25, BGE
-cross-encoder reranking, and RAGAS evaluation. SPEC §10 requires
+cross-encoder reranking, and RAGAS evaluation. SPEC section 10 requires
 RAGAS faithfulness, answer relevancy, and context precision in
 `docs/benchmarks.md`.
 
-This change is a Milestone 3 prerequisite (SPEC §8).
+This change is a Milestone 3 prerequisite (SPEC section 8).
 
 ## What Changes
 
@@ -45,4 +45,4 @@ _None._
 - New infra: Qdrant container in `docker-compose.yml`, persistent volume.
 - Consumed by: agent system RAG and Multimodal RAG sub-agents.
 - Out of scope: paid embedding APIs, custom embedding training,
-  re-implementing chunkers (SPEC §9 + library discipline).
+  re-implementing chunkers (SPEC section 9 + library discipline).

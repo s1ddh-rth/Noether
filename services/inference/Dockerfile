@@ -31,15 +31,16 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --package noether-svc-inference || \
     uv sync --no-dev --package noether-svc-inference
 
-# Pre-train the baseline LightGBM forecaster so the image is self-contained
-# and `/forecast` is queryable as soon as the container is healthy.
-RUN mkdir -p /app/models \
- && python -m noether_forecasting.training --tag XMEAS_1 --output /app/models/xmeas_1.lgbm \
- && python -m noether_forecasting.training --tag XMEAS_7 --output /app/models/xmeas_7.lgbm \
- && python -m noether_forecasting.training --tag XMEAS_13 --output /app/models/xmeas_13.lgbm
-
 ENV PATH="/opt/venv/bin:${PATH}" \
     MODEL_DIR=/app/models
+
+# Model artefacts are produced by the eval harness or by an explicit
+# `python -m noether_forecasting.training` run. We don't bake them at build
+# time because: (a) a 7-day synthetic panel + 3 LightGBM fits is slow, and
+# (b) the eval harness is the authoritative M1 deliverable and trains its
+# own models inline. /readyz will report models: [] until /forecast is hit
+# against a tag whose artefact has been mounted into MODEL_DIR.
+RUN mkdir -p /app/models
 
 EXPOSE 8000
 USER 1001:1001

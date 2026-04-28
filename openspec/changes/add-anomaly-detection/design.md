@@ -7,7 +7,7 @@ Forest), reconstruction error (autoencoder), distance-based (Mahalanobis),
 and statistical control charts (EWMA). PyOD wraps the first three; EWMA
 is a 30-line implementation.
 
-Explainability is a hard requirement (SPEC §3 (5)). SHAP works directly
+Explainability is a hard requirement (SPEC section 3 (5)). SHAP works directly
 on the LightGBM-friendly feature representation and gives per-feature
 attribution that the LLM agent can summarise.
 
@@ -21,13 +21,13 @@ attribution that the LLM agent can summarise.
   are easy to assemble and test.
 - SHAP explanations attached to every alert above threshold.
 - Eval harness reports precision, recall, F1 per fault scenario; targets
-  ≥ 5 scenarios per SPEC §10.
+  ≥ 5 scenarios per SPEC section 10.
 
-**Non-Goals (per SPEC §9):**
+**Non-Goals (per SPEC section 9):**
 - Root-cause graph search.
 - Novel detector algorithms beyond PyOD primitives.
 - Real-time websocket alert push (the worker writes events; the frontend
-  polls — SPEC §9).
+  polls — SPEC section 9).
 
 ## Decisions
 
@@ -63,7 +63,7 @@ attribution that the LLM agent can summarise.
 - KernelExplainer is slow; document compute budget and accept it for
   v0.1 since explanations only run on alerts.
 - Ensemble simple mean isn't optimal but matches "boring tech wins"
-  (SPEC §11). Stacking can land in v0.2.
+  (SPEC section 11). Stacking can land in v0.2.
 - Windowing in the worker creates duplicated logic if we ever want
   on-demand scoring of arbitrary windows from the API. We accept that
   duplication; alternative (Kafka Streams) is heavier than v0.1 needs.

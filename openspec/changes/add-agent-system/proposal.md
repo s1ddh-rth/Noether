@@ -2,12 +2,12 @@
 
 The agent system is the user-facing intelligence of Noether: it answers
 operator questions, coordinates tools, and persists memory across
-sessions (SPEC §3 (6) and (7)). SPEC §4 (component 6) names LangGraph
+sessions (SPEC section 3 (6) and (7)). SPEC section 4 (component 6) names LangGraph
 with a router and six sub-agents (SQL, RAG, multimodal RAG, forecast,
 anomaly, viz), Graphiti memory on Neo4j, and dual-mode LLM (Ollama
 default, cloud optional).
 
-This change is the centrepiece of Milestone 3 (SPEC §8). The Milestone-3
+This change is the centrepiece of Milestone 3 (SPEC section 8). The Milestone-3
 demo query — *"Why did anomaly fire on FT-101 yesterday at 14:23?"* —
 must work end-to-end after this change ships.
 
@@ -51,4 +51,4 @@ respective changes)._
 - New infra: Neo4j Community container in `docker-compose.yml`, Ollama
   container with a default small model pre-pulled.
 - Consumed by: `services/frontend` chat surface.
-- Out of scope: fine-tuned domain LLMs, custom embeddings (SPEC §9).
+- Out of scope: fine-tuned domain LLMs, custom embeddings (SPEC section 9).

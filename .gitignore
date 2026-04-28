@@ -91,10 +91,14 @@ logs/
 pids/
 *.pid
 
-# --- Data (DVC-tracked, see SPEC §6) --------------------------------------
+# --- Data (DVC-tracked, see SPEC section 6) --------------------------------------
 data/
 !data/.gitkeep
 !data/README.md
+
+# --- Eval artefacts (regenerated; canonical numbers live in docs/benchmarks.md)
+eval/results/*
+!eval/results/.gitkeep
 
 # --- ML artefacts ----------------------------------------------------------
 mlruns/

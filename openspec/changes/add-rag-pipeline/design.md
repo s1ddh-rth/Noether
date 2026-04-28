@@ -5,7 +5,7 @@ Two retrieval surfaces matter at v0.1:
 2. Multimodal RAG over self-generated P&IDs (drawio).
 
 Both can share the same Qdrant index and embedding pipeline if we treat
-P&IDs as image-with-caption documents. SPEC §6 names BGE-base / BGE-M3
+P&IDs as image-with-caption documents. SPEC section 6 names BGE-base / BGE-M3
 for embeddings and BGE-reranker-base for cross-encoding.
 
 ## Goals / Non-Goals
@@ -20,7 +20,7 @@ for embeddings and BGE-reranker-base for cross-encoding.
 - All BGE models cached locally; air-gapped runs work after one-time
   warm.
 
-**Non-Goals (per SPEC §9):**
+**Non-Goals (per SPEC section 9):**
 - Custom embedding training.
 - Paid embedding APIs in default config.
 - Continual indexing or live-document ingestion (batch only at v0.1).
@@ -75,5 +75,5 @@ for embeddings and BGE-reranker-base for cross-encoding.
   retrieval latency on the multimodal path. Acceptable: this only fires
   when the query intent is multimodal (router decides); text-only
   queries are unchanged.
-- SPEC §11: scope creep risk. We resist adding query rewriting, HyDE, or
+- SPEC section 11: scope creep risk. We resist adding query rewriting, HyDE, or
   custom rerankers at v0.1.

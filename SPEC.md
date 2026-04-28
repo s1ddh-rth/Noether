@@ -14,10 +14,10 @@ You are an AI coding agent (Claude Code) collaborating with the human author on 
 **On first read of this file, your immediate next steps are:**
 
 1. Read this file fully.
-2. Generate a `CLAUDE.md` at the repo root capturing the conventions in §7 below, in the standard CLAUDE.md format used by Anthropic's Claude Code.
-3. Initialise OpenSpec in the repo. Generate one OpenSpec change proposal per component listed in §4 (eight proposals total). Do NOT implement them yet — just create the proposals so the human can review.
+2. Generate a `CLAUDE.md` at the repo root capturing the conventions in section 7 below, in the standard CLAUDE.md format used by Anthropic's Claude Code.
+3. Initialise OpenSpec in the repo. Generate one OpenSpec change proposal per component listed in section 4 (eight proposals total). Do NOT implement them yet — just create the proposals so the human can review.
 4. Once proposals exist, await human approval before implementing anything.
-5. The very first implementation milestone is **Milestone 1** in §8. Do not skip ahead.
+5. The very first implementation milestone is **Milestone 1** in section 8. Do not skip ahead.
 
 If anything in this file is ambiguous, ask before assuming.
 
@@ -30,7 +30,7 @@ Noether is a portfolio-grade open-source project demonstrating production engine
 - **Run end-to-end on a laptop** in under 60 seconds via `docker compose up`
 - **Deploy to k3s/k3d** via a single Helm chart, production-style
 - **Operate fully air-gapped** when configured to use a local Ollama LLM backend
-- **Demonstrate every capability** named in §3, with benchmark evidence
+- **Demonstrate every capability** named in section 3, with benchmark evidence
 - Be **clearly documented** enough that a hiring manager can clone, run, and understand it inside ten minutes
 - Be **legibly architected** enough to discuss confidently in a senior interview
 
@@ -330,11 +330,11 @@ Tick every box. No exceptions.
 
 | Risk | Mitigation |
 |---|---|
-| Scope creep | This file. Strict adherence to §4 and §9. Any addition is an OpenSpec change proposal |
-| Time overrun | If a milestone slips by more than 3 days, cut scope from §3, do not extend the milestone |
+| Scope creep | This file. Strict adherence to section 4 and section 9. Any addition is an OpenSpec change proposal |
+| Time overrun | If a milestone slips by more than 3 days, cut scope from section 3, do not extend the milestone |
 | Library churn | Lock versions in `pyproject.toml`. Renovate bot off until v0.1 ships |
 | LLM cost creep | Default to Ollama. CI does not call cloud LLMs. Smoke-test cloud paths manually |
-| Over-engineering | "Boring tech wins" — see §5 stack. No service mesh, no operators, no CRDs |
+| Over-engineering | "Boring tech wins" — see section 5 stack. No service mesh, no operators, no CRDs |
 | Documentation lag | Docs updated in the same PR as the code change. Reviewers reject PRs without doc updates |
 
 ---
@@ -368,4 +368,4 @@ When in doubt, optimise for *clarity* and *shippability*, not cleverness.
 
 ---
 
-**End of spec. Now: read it again, generate `CLAUDE.md` from §7, initialise OpenSpec, generate the eight change proposals from §4, and stop. Await approval before implementing anything.**
+**End of spec. Now: read it again, generate `CLAUDE.md` from section 7, initialise OpenSpec, generate the eight change proposals from section 4, and stop. Await approval before implementing anything.**

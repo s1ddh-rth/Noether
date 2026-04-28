@@ -5,9 +5,9 @@ downstream component (storage, forecasting, anomaly detection, agents) assumes
 this stream exists. Without it, nothing else can be built or evaluated.
 
 This change establishes the head of the data pipeline using the simulated
-Tennessee Eastman Process (pyTEP) as the data source — per **SPEC §3 (1)**,
-**SPEC §4 (component 1)**, and **SPEC §6 (datasets)**. It is a prerequisite
-for **Milestone 1** (SPEC §8).
+Tennessee Eastman Process (pyTEP) as the data source — per **SPEC section 3 (1)**,
+**SPEC section 4 (component 1)**, and **SPEC section 6 (datasets)**. It is a prerequisite
+for **Milestone 1** (SPEC section 8).
 
 ## What Changes
 
@@ -35,8 +35,8 @@ _None — this is the first change for this surface._
 - New infra: Redpanda container in `docker-compose.yml`; topic created at
   service startup or via an init container.
 - New deps (require justification per the library-discipline rule):
-  `pytep` (TEP simulator — SPEC §6 names it as the primary dataset; no
+  `pytep` (TEP simulator — SPEC section 6 names it as the primary dataset; no
   in-stack alternative), `confluent-kafka` or `aiokafka` (Kafka client; pick
-  one in design.md), `pydantic-settings` (already implied by SPEC §7).
+  one in design.md), `pydantic-settings` (already implied by SPEC section 7).
 - Documentation: `services/ingest/README.md`.
-- Out of scope: real OPC UA/SCADA connectors (SPEC §9).
+- Out of scope: real OPC UA/SCADA connectors (SPEC section 9).

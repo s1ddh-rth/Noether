@@ -1,9 +1,9 @@
 ## Why
 
 The frontend is what the hiring-manager audience actually sees in 90
-seconds (SPEC §2). It must surface live tags, anomaly alerts, and the
+seconds (SPEC section 2). It must surface live tags, anomaly alerts, and the
 agent chat — minimally, cleanly, and within the boring-tech rule
-(SPEC §11). SPEC §3 (6) and SPEC §4 (component 7) name Next.js 14
+(SPEC section 11). SPEC section 3 (6) and SPEC section 4 (component 7) name Next.js 14
 + Tailwind + Recharts, with Vega-Lite for agent-generated charts.
 
 This change lands the frontend that the Milestone-3 demo question runs
@@ -40,4 +40,4 @@ _None._
 - No new infra; same docker-compose network.
 - Out of scope: real websocket streaming, mobile/responsive layout
   beyond Tailwind defaults, authentication beyond an inference API key
-  (SPEC §9).
+  (SPEC section 9).

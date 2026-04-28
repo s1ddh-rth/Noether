@@ -1,18 +1,18 @@
 ## Why
 
-The deployment story is a first-class capability of Noether (SPEC §3 (9))
+The deployment story is a first-class capability of Noether (SPEC section 3 (9))
 — `docker compose up` for dev, Helm on k3s for prod-style. Observability
 (Prometheus + Grafana), drift monitoring (Evidently), experiment tracking
 (MLflow), and a working CI/CD pipeline are all definition-of-done items
-(SPEC §10). SPEC §4 (component 8) groups these under "Ops".
+(SPEC section 10). SPEC section 4 (component 8) groups these under "Ops".
 
-This change is the focus of Milestone 4 (SPEC §8) and depends on every
+This change is the focus of Milestone 4 (SPEC section 8) and depends on every
 other change shipping first.
 
 ## What Changes
 
 - `docker-compose.yml` consolidated and verified end-to-end (cold start
-  under 60 s after image pull — SPEC §10).
+  under 60 s after image pull — SPEC section 10).
 - `charts/noether/` Helm chart deploying every service to k3d cleanly,
   with `values.yaml`, `values.dev.yaml`, `values.airgapped.yaml`.
 - Prometheus + Grafana containers; pre-built dashboards committed.
@@ -44,4 +44,4 @@ other change shipping first.
 - Docs: `docs/deployment.md`, README finalisation (hero GIF, badges,
   benchmarks tables).
 - Out of scope: managed K8s (EKS/GKE), service mesh, operators/CRDs,
-  SealedSecrets (SPEC §9 / SPEC §11).
+  SealedSecrets (SPEC section 9 / SPEC section 11).

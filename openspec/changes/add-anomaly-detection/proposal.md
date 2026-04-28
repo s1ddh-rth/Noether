@@ -1,14 +1,14 @@
 ## Why
 
 Streaming anomaly detection with explainability is a headline capability
-(SPEC §3 (4) and (5)) and the focus of Milestone 2 (SPEC §8). Definition
+(SPEC section 3 (4) and (5)) and the focus of Milestone 2 (SPEC section 8). Definition
 of done requires precision/recall/F1 across at least 5 TEP fault scenarios
-published to `docs/benchmarks.md` (SPEC §10).
+published to `docs/benchmarks.md` (SPEC section 10).
 
 This change introduces the AD library, the streaming inference loop, the
 SHAP-based explainability layer, the `/anomaly` and `/explain` endpoints
 on the inference service, and the eval harness — all named in
-SPEC §4 (component 4).
+SPEC section 4 (component 4).
 
 ## What Changes
 
@@ -40,7 +40,7 @@ SPEC §4 (component 4).
 - New code: `libs/anomaly/`, streaming worker under
   `services/inference/anomaly_worker.py`, two new endpoints on the same
   FastAPI app.
-- New deps (justified): `pyod` (SPEC §5), `shap` (SPEC §5), `torch`
+- New deps (justified): `pyod` (SPEC section 5), `shap` (SPEC section 5), `torch`
   (already in stack for PatchTST; reused for the autoencoder), `numpy`,
   `scikit-learn` (already implied).
 - New Kafka topic `plant.anomalies`; storage consumer extended (or a new

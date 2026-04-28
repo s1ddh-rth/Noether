@@ -4,7 +4,7 @@ Compares a naive last-value baseline against the LightGBM forecaster on a
 held-out slice of synthetic TEP data. Prints a Markdown table to stdout and
 writes structured results to `eval/results/forecast.json`.
 
-This is the M1 deliverable (SPEC §8): "Forecast eval harness runs and prints
+This is the M1 deliverable (SPEC section 8): "Forecast eval harness runs and prints
 MAE/RMSE." PatchTST + ensemble columns land in a follow-up.
 """
 

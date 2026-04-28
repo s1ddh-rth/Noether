@@ -3,9 +3,9 @@
 Tag samples flowing through Redpanda must be persisted to a queryable
 time-series store so that the forecasting service can fit models, the agent
 SQL tool can answer historical questions, and Grafana can visualise live
-behaviour. SPEC §3 (2), SPEC §4 (component 2), and SPEC §5 lock in
+behaviour. SPEC section 3 (2), SPEC section 4 (component 2), and SPEC section 5 lock in
 TimescaleDB hypertables for this role. This change is a Milestone 1
-prerequisite (SPEC §8).
+prerequisite (SPEC section 8).
 
 ## What Changes
 
@@ -35,9 +35,9 @@ _None._
 - New infra: TimescaleDB image in `docker-compose.yml`, init SQL for
   hypertable + policies, env-driven connection settings.
 - New deps (justified): `asyncpg` (async Postgres driver — necessary for
-  bulk inserts at line rate), `sqlalchemy` (typed query layer; SPEC §5
+  bulk inserts at line rate), `sqlalchemy` (typed query layer; SPEC section 5
   doesn't lock an ORM but pydantic-settings + sqlalchemy is the boring
   choice), `psycopg[binary]` only if needed for migrations.
 - Tooling: `alembic` for migrations.
 - Documentation: `services/storage-consumer/README.md`, `libs/storage/README.md`.
-- Out of scope: Cross-region replication, multi-tenant schemas (SPEC §9).
+- Out of scope: Cross-region replication, multi-tenant schemas (SPEC section 9).

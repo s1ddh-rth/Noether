@@ -1,6 +1,6 @@
 # Architecture
 
-See **SPEC §4** for the canonical diagram. This file annotates the pieces
+See **SPEC section 4** for the canonical diagram. This file annotates the pieces
 that exist today (M1) and what's stubbed.
 
 ## M1 footprint (live)

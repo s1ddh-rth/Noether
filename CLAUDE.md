@@ -1,7 +1,7 @@
 # CLAUDE.md — Working Conventions for Noether
 
 This file tells Claude Code how to work in this repo. It is derived from
-**SPEC.md §7** and is the operational counterpart to the spec.
+**SPEC.md section 7** and is the operational counterpart to the spec.
 
 ## Sources of truth, in order
 
@@ -17,7 +17,7 @@ This file tells Claude Code how to work in this repo. It is derived from
 
 - **Spec-first.** Propose changes via OpenSpec before implementing. One change
   proposal per scoped unit of work. Await human approval before writing code.
-- **Boring tech wins.** The stack in SPEC §5 is locked. Do not introduce a new
+- **Boring tech wins.** The stack in SPEC section 5 is locked. Do not introduce a new
   top-level dependency without an OpenSpec change proposal that justifies it.
 - **Library discipline.** Use OSS, do not reimplement. PyOD for AD, Nixtla for
   forecasting, Graphiti for memory, RAGAS for eval. If you find yourself
@@ -25,7 +25,7 @@ This file tells Claude Code how to work in this repo. It is derived from
 - **Air-gap and cost rules are non-negotiable.** Default config must run with
   zero paid services and zero outbound network calls (`LLM_BACKEND=ollama`,
   `OFFLINE_MODE=1`).
-- **One milestone at a time.** Do not skip ahead in SPEC §8.
+- **One milestone at a time.** Do not skip ahead in SPEC section 8.
 
 ## Code style
 
@@ -139,7 +139,7 @@ noether/
 5. **Archive** — `openspec archive <name>` when shipped; the deltas merge into
    `openspec/specs/`.
 
-## What's out of scope (SPEC §9 — do not propose)
+## What's out of scope (SPEC section 9 — do not propose)
 
 - Real OPC UA / SCADA / DCS connectors
 - Custom physics-informed neural networks (PINNs)

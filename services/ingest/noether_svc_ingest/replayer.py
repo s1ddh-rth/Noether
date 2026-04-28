@@ -23,8 +23,8 @@ async def run(settings: IngestSettings, log: BoundLogger) -> None:
 
     producer = AIOKafkaProducer(
         bootstrap_servers=settings.kafka_bootstrap,
-        # Compression keeps disk + network costs down at 50 tags * 1 Hz.
-        compression_type="lz4",
+        # Compression dropped for v0.1 — lz4/snappy bindings would be a
+        # separate dep proposal. 50 tags * 1 Hz fits comfortably uncompressed.
         linger_ms=20,
         acks="all",
         enable_idempotence=True,

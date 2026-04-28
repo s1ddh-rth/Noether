@@ -1,5 +1,5 @@
 # =============================================================================
-# Noether — local dev stack (SPEC §8 Milestone 1)
+# Noether — local dev stack (SPEC section 8 Milestone 1)
 #
 # Usage:
 #     cp .env.example .env
@@ -189,7 +189,9 @@ services:
     environment:
       <<: *common-env
       MODEL_DIR: /app/models
-    entrypoint: ["python", "-m", "eval.forecast_harness"]
+    # --hours 48 keeps a smoke run feasible on small dev hosts (~250 MB peak).
+    # The harness default is 24*7 = 168h for proper evaluation runs.
+    entrypoint: ["python", "-m", "eval.forecast_harness", "--hours", "48"]
     volumes:
       - ./eval/results:/app/eval/results
     networks: [noether]

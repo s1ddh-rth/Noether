@@ -19,7 +19,7 @@ hypertables or multi-node setups.
 - Typed query helpers for the most common access patterns: latest value
   per tag, range query per tag, multi-tag pivot.
 
-**Non-Goals (per SPEC §9):**
+**Non-Goals (per SPEC section 9):**
 - Multi-tenant schemas / row-level security.
 - Cross-region replication.
 - Custom physics-informed transformations stored at the DB layer.
@@ -50,5 +50,5 @@ hypertables or multi-node setups.
   service README.
 - **Consumer back-pressure:** if Timescale slows down, the consumer falls
   behind on Kafka. We accept lag at v0.1 (no SLA); structured logs and a
-  Prometheus lag gauge make it visible. SPEC §11 risk: scope creep — we
+  Prometheus lag gauge make it visible. SPEC section 11 risk: scope creep — we
   resist adding a dead-letter queue at v0.1.

@@ -1,18 +1,18 @@
 ## Context
 
-Noether is judged by two audiences (SPEC §2): hiring managers who will
+Noether is judged by two audiences (SPEC section 2): hiring managers who will
 read the README and try `docker compose up`, and learners who want a
 clean reference. Both feel the ops layer first. The bar is "boring,
 working, observable" — not "cutting-edge platform engineering".
 
 k3d gives a single-binary k3s in Docker, ideal for the prod-style demo
-without paying for managed K8s (SPEC §9 forbids EKS/GKE).
+without paying for managed K8s (SPEC section 9 forbids EKS/GKE).
 
 ## Goals / Non-Goals
 
 **Goals:**
 - `docker compose up` cold-starts the full stack in <60 s after image
-  pull (SPEC §10).
+  pull (SPEC section 10).
 - `helm install noether ./charts/noether` deploys cleanly to k3d.
 - Three values overlays: default, `dev`, `airgapped`.
 - Every service exposes `/metrics`; Prometheus scrapes; Grafana shows.
@@ -25,11 +25,11 @@ without paying for managed K8s (SPEC §9 forbids EKS/GKE).
   build → push to GHCR. Eval harnesses run on PRs that touch the
   relevant libs.
 
-**Non-Goals (per SPEC §9 / SPEC §11):**
+**Non-Goals (per SPEC section 9 / SPEC section 11):**
 - Managed K8s (EKS/GKE).
 - Service mesh, operators, CRDs.
 - SealedSecrets (Kubernetes Secrets are sufficient at v0.1).
-- Renovate bot until v0.1 ships (SPEC §11 — pin versions).
+- Renovate bot until v0.1 ships (SPEC section 11 — pin versions).
 
 ## Decisions
 
@@ -57,9 +57,9 @@ without paying for managed K8s (SPEC §9 forbids EKS/GKE).
 
 - 60-second cold start budget is tight once Ollama and embedding models
   are involved. Mitigation: pre-bake images with model warmup;
-  document that the budget is "after image pull" (SPEC §10 wording).
+  document that the budget is "after image pull" (SPEC section 10 wording).
 - Helm with subcharts increases values-file complexity. Mitigation: keep
   values flat at top level; document overlays.
 - CI eval cost: harnesses can be slow. Mitigation: run them only on
   PRs touching the relevant libs (path filters); nightly run on `main`.
-- SPEC §11: scope creep — no service mesh, no operators. We hold the line.
+- SPEC section 11: scope creep — no service mesh, no operators. We hold the line.

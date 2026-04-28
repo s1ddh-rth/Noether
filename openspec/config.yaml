@@ -52,7 +52,7 @@ context: |
   NASA tech reports + DOE process safety docs (RAG corpus), self-generated
   draw.io P&IDs (multimodal RAG).
 
-  Build order — work proceeds milestone-by-milestone (SPEC §8). Do not skip
+  Build order — work proceeds milestone-by-milestone (SPEC section 8). Do not skip
   ahead. Do not implement until the human approves the relevant proposal.
 
 rules:
@@ -61,13 +61,13 @@ rules:
     - List Impact in terms of services/, libs/, charts/, eval/, docs/ paths.
     - If the change introduces a new top-level dependency, name it explicitly
       under "Impact" and justify why no existing locked library covers it.
-    - Out-of-scope items from SPEC §9 must not appear as goals.
+    - Out-of-scope items from SPEC section 9 must not appear as goals.
   design:
-    - Non-Goals must explicitly include items from SPEC §9 that a reader might
+    - Non-Goals must explicitly include items from SPEC section 9 that a reader might
       otherwise expect to be in scope.
-    - Decisions must reference the locked tech stack from SPEC §5; do not
+    - Decisions must reference the locked tech stack from SPEC section 5; do not
       introduce alternatives without flagging them as a stack change.
-    - Risks should reference SPEC §11 where applicable.
+    - Risks should reference SPEC section 11 where applicable.
   tasks:
     - Task groups should map to deliverable units that fit inside one PR.
     - Every change must include a "Tests" task group (pytest for Python,

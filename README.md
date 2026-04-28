@@ -69,7 +69,7 @@ eval/
   forecast_harness.py    # M1 eval harness — naive vs LightGBM
 
 openspec/
-  changes/               # 8 OpenSpec change proposals (one per SPEC §4 component)
+  changes/               # 8 OpenSpec change proposals (one per SPEC section 4 component)
 docs/
   architecture.md
   benchmarks.md

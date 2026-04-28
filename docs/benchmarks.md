@@ -1,6 +1,6 @@
 # Benchmarks
 
-Updated by the eval harnesses. See SPEC §10 for the v0.1 bar.
+Updated by the eval harnesses. See SPEC section 10 for the v0.1 bar.
 
 ## Forecast (M1)
 
@@ -17,12 +17,21 @@ python -m eval.forecast_harness --tags XMEAS_1 XMEAS_7 XMEAS_13 --horizon 30
 ```
 
 The harness writes `eval/results/forecast.json` and prints a Markdown table.
-Numbers below are rendered into this file by the eval CI job (out of scope
-for M1; placeholder until that lands):
+First run, 2026-04-28, on the synthetic TEP panel (`--hours 48`, seed 42):
 
 | tag | horizon | n_test | naive MAE | naive RMSE | LGBM MAE | LGBM RMSE |
 |---|---|---|---|---|---|---|
-| _pending first run_ | | | | | | |
+| XMEAS_1  | 30m | 418 | 0.458 | 0.508 | 0.134 | 0.168 |
+| XMEAS_7  | 30m | 418 | 0.296 | 0.342 | 0.111 | 0.140 |
+| XMEAS_13 | 30m | 418 | 0.341 | 0.409 | 0.142 | 0.181 |
+
+LightGBM beats the last-value baseline by ~2.5–3× on MAE across all three
+tags — the slow seasonal + AR(1) dynamics give the lag/rolling features
+real signal, but the noise floor keeps it from being trivial.
+
+These numbers are from the synthetic generator. Once the real Tennessee
+Eastman simulator lands (separate change proposal), this table will be
+re-rendered against TEP variables on the same horizon.
 
 ## Anomaly Detection (M2)
 
