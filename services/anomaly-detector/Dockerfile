@@ -30,21 +30,14 @@ COPY services ./services
 COPY eval ./eval
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --package noether-svc-inference || \
-    uv sync --no-dev --package noether-svc-inference
+    uv sync --frozen --no-dev --package noether-svc-anomaly || \
+    uv sync --no-dev --package noether-svc-anomaly
 
 ENV PATH="/opt/venv/bin:${PATH}" \
     MODEL_DIR=/app/models
 
-# Model artefacts are produced by the eval harness or by an explicit
-# `python -m noether_forecasting.training` run. We don't bake them at build
-# time because: (a) a 7-day synthetic panel + 3 LightGBM fits is slow, and
-# (b) the eval harness is the authoritative M1 deliverable and trains its
-# own models inline. /readyz will report models: [] until /forecast is hit
-# against a tag whose artefact has been mounted into MODEL_DIR.
 RUN mkdir -p /app/models
 
-EXPOSE 8000
 USER 1001:1001
 
-ENTRYPOINT ["python", "-m", "noether_svc_inference"]
+ENTRYPOINT ["python", "-m", "noether_svc_anomaly"]

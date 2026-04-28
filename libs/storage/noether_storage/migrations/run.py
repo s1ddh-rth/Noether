@@ -13,7 +13,11 @@ import sys
 import asyncpg
 
 from noether_storage.config import StorageSettings, dsn
-from noether_storage.schema import ALL_DDL_NO_RETENTION, add_retention_policy_sql
+from noether_storage.schema import (
+    ALL_DDL_NO_RETENTION,
+    add_anomalies_retention_policy_sql,
+    add_retention_policy_sql,
+)
 
 
 async def _run(settings: StorageSettings) -> None:
@@ -22,6 +26,7 @@ async def _run(settings: StorageSettings) -> None:
         for stmt in ALL_DDL_NO_RETENTION:
             await conn.execute(stmt)
         await conn.execute(add_retention_policy_sql(settings.retention_days))
+        await conn.execute(add_anomalies_retention_policy_sql(settings.retention_days))
     finally:
         await conn.close()
 

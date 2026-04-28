@@ -35,7 +35,30 @@ re-rendered against TEP variables on the same horizon.
 
 ## Anomaly Detection (M2)
 
-_Placeholder — populated by `anomaly_harness.py` once M2 ships._
+The AD harness fits the 3-detector ensemble (Isolation Forest + Mahalanobis +
+EWMA) on a clean baseline, then scores sliding 60-s windows across pre-fault
++ fault data and reports the best-F1 threshold per scenario.
+
+```
+python -m eval.anomaly_harness
+# or in compose:
+docker compose --profile eval run --rm anomaly-eval
+```
+
+| fault_id | profile | scenario notes |
+|---|---|---|
+| 1 | step | +5.0 to first 10 XMEAS |
+| 2 | step | +10.0 to first 10 XMEAS |
+| 3 | drift | +0.001 / s |
+| 4 | drift | +0.005 / s |
+| 5 | spike | 10–20 magnitude, every 60 s |
+| 6 | spike | 20–40 magnitude, every 60 s |
+
+Numbers will be rendered into this file by the eval CI job once it lands.
+
+These scenarios stand in for real TEP fault IDs (1–21). When the
+Fortran-backed Tennessee Eastman simulator drops in (separate change), the
+fault profiles map onto canonical TEP IDs without changing the harness.
 
 ## RAG (M3)
 
