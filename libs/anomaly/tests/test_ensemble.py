@@ -64,6 +64,31 @@ def test_baseline_window_does_not_alert(
     assert result.score < 1.0  # not maxed out
 
 
+def test_baseline_score_calibrated_below_threshold(
+    fitted_ensemble: AnomalyEnsemble, baseline_panel: pd.DataFrame
+) -> None:
+    """Regression for the np.max-aggregation bug.
+
+    The previous implementation took np.max of per-row rank-normalised
+    detector scores across a 60-row window. With ~60 rows on the IF/Mahalanobis
+    rank-CDF, at least one row almost always landed near 1.0, so clean
+    windows scored ~0.99 and the alert threshold was effectively useless.
+
+    The fix is np.mean per detector window: a baseline window should
+    centre around 0.5 and stay well below the 0.95 alert threshold.
+    """
+    threshold = fitted_ensemble.threshold  # 0.95
+    # Several non-overlapping windows from inside the training distribution.
+    for start in (60, 240, 480, 720, 960, 1200, 1440):
+        window = baseline_panel.iloc[start : start + 60]
+        result = fitted_ensemble.score(window)
+        assert result.score < threshold - 0.2, (
+            f"baseline window @{start} scored {result.score:.3f}; "
+            f"calibration says it must be < {threshold - 0.2:.3f}"
+        )
+        assert result.alert is False
+
+
 def test_save_load_round_trip(
     tmp_path, fitted_ensemble: AnomalyEnsemble, baseline_panel: pd.DataFrame
 ) -> None:
