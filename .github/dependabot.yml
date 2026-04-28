@@ -7,11 +7,48 @@ updates:
       interval: "weekly"
       day: "monday"
 
-  # Python deps via uv — group everything to keep PR noise low.
+  # Python deps via uv. Split into focused groups so each PR has an isolated
+  # regression surface — a busted ML lib bump shouldn't be tangled up with a
+  # ruff bump.
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "monthly"
     groups:
-      python:
-        patterns: ["*"]
+      linters:
+        patterns:
+          - "black"
+          - "ruff"
+          - "mypy"
+          - "pre-commit"
+      tests:
+        patterns:
+          - "pytest*"
+          - "testcontainers*"
+          - "ipython"
+      ml:
+        # Bumps here can shift forecast/AD eval numbers — review with
+        # `make eval` before merge.
+        patterns:
+          - "lightgbm"
+          - "neuralforecast"
+          - "pyod"
+          - "shap"
+          - "scikit-learn"
+          - "scipy"
+          - "torch"
+          - "joblib"
+      runtime:
+        patterns:
+          - "fastapi"
+          - "uvicorn*"
+          - "pydantic*"
+          - "structlog"
+          - "asyncpg"
+          - "sqlalchemy*"
+          - "alembic"
+          - "aiokafka"
+          - "httpx"
+          - "pyarrow"
+          - "pandas"
+          - "numpy"
