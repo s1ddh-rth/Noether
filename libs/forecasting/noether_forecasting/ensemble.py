@@ -71,9 +71,13 @@ class EnsembleForecaster:
         lgbm_res = self.lgbm.predict(X)
         patchtst_res = self.patchtst.predict(series)
         point = self.weight_lgbm * lgbm_res.point + self.weight_patchtst * patchtst_res.point
-        half = 1.96 * self._residual_std if self._residual_std > 0 else max(
-            abs(lgbm_res.upper - lgbm_res.point),
-            abs(patchtst_res.upper - patchtst_res.point),
+        half = (
+            1.96 * self._residual_std
+            if self._residual_std > 0
+            else max(
+                abs(lgbm_res.upper - lgbm_res.point),
+                abs(patchtst_res.upper - patchtst_res.point),
+            )
         )
         return ForecastResult(
             tag=self.tag,

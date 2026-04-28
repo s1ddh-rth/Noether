@@ -21,9 +21,7 @@ def _hourly_sine(hours: int = 24, freq_s: int = 1) -> pd.Series:
     )
     rng = np.random.default_rng(42)
     values = (
-        100.0
-        + 5.0 * np.sin(2 * np.pi * np.arange(n) / (24 * 3600))
-        + 0.1 * rng.standard_normal(n)
+        100.0 + 5.0 * np.sin(2 * np.pi * np.arange(n) / (24 * 3600)) + 0.1 * rng.standard_normal(n)
     )
     return pd.Series(values, index=idx)
 

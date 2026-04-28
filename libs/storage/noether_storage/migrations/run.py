@@ -34,7 +34,10 @@ async def _run(settings: StorageSettings) -> None:
 def main() -> None:
     settings = StorageSettings()
     asyncio.run(_run(settings))
-    print(f"migrations applied to {settings.host}:{settings.port}/{settings.database}", file=sys.stderr)
+    print(
+        f"migrations applied to {settings.host}:{settings.port}/{settings.database}",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

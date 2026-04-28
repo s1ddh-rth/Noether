@@ -71,7 +71,11 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["libs", "services", "eval"]
-addopts = "-ra --strict-markers --strict-config"
+# importlib mode lets two test files share a basename across packages
+# (e.g. libs/ingest/tests/test_schema.py and libs/storage/tests/test_schema.py)
+# without colliding in sys.modules. Default "prepend" mode is rootdir-based
+# and would conflict.
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 markers = [
     "integration: requires docker compose stack",
     "slow: takes more than 1s",

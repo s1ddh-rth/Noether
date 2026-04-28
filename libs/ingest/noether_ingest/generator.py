@@ -21,9 +21,7 @@ import numpy as np
 
 # Tag layout matches the Tennessee Eastman Process: 41 measurements + 11
 # manipulated variables. Names mirror the canonical TEP convention.
-TAG_NAMES: list[str] = [f"XMEAS_{i}" for i in range(1, 42)] + [
-    f"XMV_{i}" for i in range(1, 12)
-]
+TAG_NAMES: list[str] = [f"XMEAS_{i}" for i in range(1, 42)] + [f"XMV_{i}" for i in range(1, 12)]
 
 
 class Generator(Protocol):

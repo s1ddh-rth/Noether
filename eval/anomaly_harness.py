@@ -36,8 +36,8 @@ from noether_ingest import SyntheticTEP, stream_samples
 # actually applied. When the real TEP simulator lands, this list maps 1:1
 # onto TEP fault IDs without changing the harness.
 FAULT_SCENARIOS: list[tuple[int, str, dict]] = [
-    (1, "step",  {"magnitude": 5.0}),
-    (2, "step",  {"magnitude": 10.0}),
+    (1, "step", {"magnitude": 5.0}),
+    (2, "step", {"magnitude": 10.0}),
     (3, "drift", {"slope_per_s": 0.001}),
     (4, "drift", {"slope_per_s": 0.005}),
     (5, "spike", {"magnitude_low": 10.0, "magnitude_high": 20.0}),

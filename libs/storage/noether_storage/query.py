@@ -84,8 +84,10 @@ async def pivot(
     )
     async with engine.connect() as conn:
         rows = (
-            await conn.execute(sql, {"tags": list(tags), "start": start, "end": end})
-        ).mappings().all()
+            (await conn.execute(sql, {"tags": list(tags), "start": start, "end": end}))
+            .mappings()
+            .all()
+        )
     if not rows:
         return pd.DataFrame(columns=list(tags))
     df = pd.DataFrame(rows)

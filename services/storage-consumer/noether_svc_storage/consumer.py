@@ -67,10 +67,11 @@ async def run(
         while True:
             wait_ms = max(
                 10,
-                consumer_settings.batch_max_wait_ms
-                - int((time.monotonic() - last_flush) * 1000),
+                consumer_settings.batch_max_wait_ms - int((time.monotonic() - last_flush) * 1000),
             )
-            batch = await consumer.getmany(timeout_ms=wait_ms, max_records=consumer_settings.batch_size)
+            batch = await consumer.getmany(
+                timeout_ms=wait_ms, max_records=consumer_settings.batch_size
+            )
             for _tp, msgs in batch.items():
                 for msg in msgs:
                     try:
@@ -85,9 +86,9 @@ async def run(
                         continue
                     buffer.append((sample.ts, sample.tag, sample.value, sample.quality.value))
 
-            should_flush = (
-                len(buffer) >= consumer_settings.batch_size
-                or (buffer and (time.monotonic() - last_flush) * 1000 >= consumer_settings.batch_max_wait_ms)
+            should_flush = len(buffer) >= consumer_settings.batch_size or (
+                buffer
+                and (time.monotonic() - last_flush) * 1000 >= consumer_settings.batch_max_wait_ms
             )
             if should_flush:
                 await _flush(pool, buffer, log)

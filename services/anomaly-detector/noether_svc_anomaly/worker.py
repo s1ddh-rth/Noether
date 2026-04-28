@@ -22,21 +22,23 @@ from structlog.stdlib import BoundLogger
 from noether_svc_anomaly.config import AnomalySettings
 
 
-async def _wait_for_warmup(
-    engine, settings: AnomalySettings, log: BoundLogger
-) -> datetime:
+async def _wait_for_warmup(engine, settings: AnomalySettings, log: BoundLogger) -> datetime:
     """Block until tag_samples has `warmup_minutes` of recent data."""
     while True:
         async with engine.connect() as conn:
             from sqlalchemy import text
 
             row = (
-                await conn.execute(
-                    text(
-                        "SELECT min(ts) AS min_ts, max(ts) AS max_ts, count(*) AS n FROM tag_samples"
+                (
+                    await conn.execute(
+                        text(
+                            "SELECT min(ts) AS min_ts, max(ts) AS max_ts, count(*) AS n FROM tag_samples"
+                        )
                     )
                 )
-            ).mappings().first()
+                .mappings()
+                .first()
+            )
         if row and row["max_ts"] is not None:
             span_min = (row["max_ts"] - row["min_ts"]).total_seconds() / 60.0
             if span_min >= settings.warmup_minutes:

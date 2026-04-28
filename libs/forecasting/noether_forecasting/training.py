@@ -19,9 +19,7 @@ from noether_forecasting.patchtst import PatchTSTForecaster
 from noether_forecasting.synthetic_dataset import generate_offline_panel
 
 
-def _train_lgbm(
-    panel, tag: str, horizon: int, seed: int, output: Path
-) -> dict:
+def _train_lgbm(panel, tag: str, horizon: int, seed: int, output: Path) -> dict:
     series = panel[tag]
     X, y = build_features(series, FeatureSpec(horizon_min=horizon))
     X_tr, X_va, X_te, y_tr, y_va, y_te = train_val_test_split(X, y)
@@ -38,9 +36,7 @@ def _train_lgbm(
     return {"tag": tag, "model": "lgbm", "n_test": len(y_te), "mae": mae, "rmse": rmse}
 
 
-def _train_patchtst(
-    panel, tag: str, horizon: int, seed: int, output: Path, max_steps: int
-) -> dict:
+def _train_patchtst(panel, tag: str, horizon: int, seed: int, output: Path, max_steps: int) -> dict:
     series = panel[tag]
     n = len(series)
     n_test = int(n * 0.15)
@@ -59,9 +55,7 @@ def _train_patchtst(
     return {"tag": tag, "model": "patchtst", "max_steps": max_steps}
 
 
-def _train_ensemble(
-    panel, tag: str, horizon: int, seed: int, output: Path, max_steps: int
-) -> dict:
+def _train_ensemble(panel, tag: str, horizon: int, seed: int, output: Path, max_steps: int) -> dict:
     series = panel[tag]
     X, y = build_features(series, FeatureSpec(horizon_min=horizon))
     X_tr, X_va, X_te, y_tr, y_va, y_te = train_val_test_split(X, y)

@@ -96,7 +96,9 @@ async def anomaly(
     try:
         ensemble = _load_ensemble(settings)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
 
     engine = _engine()
     try:
@@ -144,23 +146,29 @@ async def explain(
     try:
         ensemble = _load_ensemble(settings)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
 
     engine = _engine()
     try:
         async with engine.connect() as conn:
             row = (
-                await conn.execute(
-                    text(
-                        """
+                (
+                    await conn.execute(
+                        text(
+                            """
                         SELECT window_start, window_end, score, tags
                         FROM tag_anomalies
                         WHERE alert_id = :alert_id
                         """
-                    ),
-                    {"alert_id": str(body.alert_id)},
+                        ),
+                        {"alert_id": str(body.alert_id)},
+                    )
                 )
-            ).mappings().first()
+                .mappings()
+                .first()
+            )
         if row is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

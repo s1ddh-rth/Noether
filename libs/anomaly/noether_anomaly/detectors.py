@@ -29,6 +29,7 @@ class Detector(Protocol):
     def score(self, X: pd.DataFrame) -> np.ndarray:
         """Return one anomaly score per row in `X` (higher = more anomalous)."""
         ...
+
     def per_tag_contribution(self, X: pd.DataFrame) -> pd.DataFrame:
         """Per-row × per-tag breakdown of the score."""
         ...
@@ -68,7 +69,9 @@ class IsolationForestDetector:
         # internally, but `decision_scores_` and `decision_function` actually
         # return higher = more anomalous after PyOD's wrapping. We lean on
         # that convention.
-        return np.asarray(self._model.decision_function(X[self._feature_cols].to_numpy(dtype=np.float64)))
+        return np.asarray(
+            self._model.decision_function(X[self._feature_cols].to_numpy(dtype=np.float64))
+        )
 
     def per_tag_contribution(self, X: pd.DataFrame) -> pd.DataFrame:
         """Crude per-tag attribution via leave-one-feature-out delta.
@@ -124,7 +127,9 @@ class MahalanobisDetector:
     def score(self, X: pd.DataFrame) -> np.ndarray:
         if self._model is None:
             raise RuntimeError("MahalanobisDetector not fitted")
-        return np.asarray(self._model.decision_function(X[self._feature_cols].to_numpy(dtype=np.float64)))
+        return np.asarray(
+            self._model.decision_function(X[self._feature_cols].to_numpy(dtype=np.float64))
+        )
 
     def per_tag_contribution(self, X: pd.DataFrame) -> pd.DataFrame:
         """Per-tag squared Mahalanobis contribution.
@@ -139,7 +144,7 @@ class MahalanobisDetector:
         # Row-wise: contrib_ij = diff_ij * sum_k(inv_cov[i,k] * diff_ik)
         # which is the j-th term in (diff @ inv_cov @ diff.T) per row.
         intermediate = diff @ self._inv_cov  # (n, d)
-        contrib = diff * intermediate         # element-wise; row sum == squared distance
+        contrib = diff * intermediate  # element-wise; row sum == squared distance
         return pd.DataFrame(contrib, columns=self._feature_cols, index=X.index)
 
 

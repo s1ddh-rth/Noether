@@ -100,9 +100,11 @@ class PatchTSTForecaster:
         ctx = pd.DataFrame(
             {
                 "unique_id": self.tag,
-                "ds": pd.DatetimeIndex(context.index).tz_localize(None)
-                if context.index.tz is not None
-                else context.index,
+                "ds": (
+                    pd.DatetimeIndex(context.index).tz_localize(None)
+                    if context.index.tz is not None
+                    else context.index
+                ),
                 "y": context.values,
             }
         )

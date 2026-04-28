@@ -98,9 +98,7 @@ def _evaluate_tag(
     if "patchtst" not in skip:
         patchtst = PatchTSTForecaster(tag=tag, horizon_min=horizon_min, max_steps=max_steps)
         patchtst.fit(s_train, s_val)
-        patchtst_pred = patchtst.predict_batch(
-            series.iloc[: n_train + n_val + n_test], X_te.index
-        )
+        patchtst_pred = patchtst.predict_batch(series.iloc[: n_train + n_val + n_test], X_te.index)
         mae, rmse, smape = _metrics(patchtst_pred, y_te_arr)
         results.append(
             ModelResult(
@@ -181,8 +179,10 @@ def main(argv: list[str] | None = None) -> int:
     for tag in args.tags:
         all_results.extend(_evaluate_tag(panel, tag, args.horizon, skip, args.max_steps))
 
-    expected = {"naive", "lgbm"} | ({"patchtst"} if "patchtst" not in skip else set()) | (
-        {"ensemble"} if "ensemble" not in skip else set()
+    expected = (
+        {"naive", "lgbm"}
+        | ({"patchtst"} if "patchtst" not in skip else set())
+        | ({"ensemble"} if "ensemble" not in skip else set())
     )
     seen_per_tag = {tag: {r.model for r in all_results if r.tag == tag} for tag in args.tags}
     missing = {tag: expected - models for tag, models in seen_per_tag.items()}
