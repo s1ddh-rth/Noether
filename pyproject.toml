@@ -10,9 +10,11 @@ dependencies = [
     "noether-ingest",
     "noether-storage",
     "noether-forecasting",
+    "noether-anomaly",
     "noether-svc-ingest",
     "noether-svc-storage-consumer",
     "noether-svc-inference",
+    "noether-svc-anomaly",
 ]
 
 [dependency-groups]
@@ -36,9 +38,11 @@ members = ["libs/*", "services/*"]
 noether-ingest = { workspace = true }
 noether-storage = { workspace = true }
 noether-forecasting = { workspace = true }
+noether-anomaly = { workspace = true }
 noether-svc-ingest = { workspace = true }
 noether-svc-storage-consumer = { workspace = true }
 noether-svc-inference = { workspace = true }
+noether-svc-anomaly = { workspace = true }
 
 [tool.black]
 line-length = 100

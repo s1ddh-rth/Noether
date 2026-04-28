@@ -19,9 +19,11 @@ COPY pyproject.toml ./
 COPY libs/ingest/pyproject.toml ./libs/ingest/
 COPY libs/storage/pyproject.toml ./libs/storage/
 COPY libs/forecasting/pyproject.toml ./libs/forecasting/
+COPY libs/anomaly/pyproject.toml ./libs/anomaly/
 COPY services/ingest/pyproject.toml ./services/ingest/
 COPY services/storage-consumer/pyproject.toml ./services/storage-consumer/
 COPY services/inference/pyproject.toml ./services/inference/
+COPY services/anomaly-detector/pyproject.toml ./services/anomaly-detector/
 
 COPY libs ./libs
 COPY services ./services

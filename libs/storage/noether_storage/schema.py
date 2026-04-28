@@ -52,6 +52,46 @@ def add_retention_policy_sql(retention_days: int) -> str:
     )
 
 
+# --- Anomaly results table -------------------------------------------------
+
+CREATE_ANOMALIES_TABLE = """
+CREATE TABLE IF NOT EXISTS tag_anomalies (
+    ts                 TIMESTAMPTZ NOT NULL,
+    alert_id           UUID        NOT NULL,
+    window_start       TIMESTAMPTZ NOT NULL,
+    window_end         TIMESTAMPTZ NOT NULL,
+    score              DOUBLE PRECISION NOT NULL,
+    iforest_score      DOUBLE PRECISION,
+    mahalanobis_score  DOUBLE PRECISION,
+    ewma_score         DOUBLE PRECISION,
+    alert              BOOLEAN NOT NULL,
+    tags               TEXT[] NOT NULL,
+    PRIMARY KEY (ts, alert_id)
+);
+"""
+
+CREATE_ANOMALIES_HYPERTABLE = """
+SELECT create_hypertable(
+    'tag_anomalies',
+    'ts',
+    chunk_time_interval => INTERVAL '1 day',
+    if_not_exists => TRUE
+);
+"""
+
+CREATE_ANOMALIES_INDEX = """
+CREATE INDEX IF NOT EXISTS idx_tag_anomalies_alert_id
+    ON tag_anomalies (alert_id);
+"""
+
+
+def add_anomalies_retention_policy_sql(retention_days: int) -> str:
+    return (
+        "SELECT add_retention_policy("
+        f"'tag_anomalies', INTERVAL '{retention_days} days', if_not_exists => TRUE);"
+    )
+
+
 ALL_DDL_NO_RETENTION = [
     CREATE_EXTENSION,
     CREATE_TABLE,
@@ -59,4 +99,7 @@ ALL_DDL_NO_RETENTION = [
     CREATE_INDEX,
     ENABLE_COMPRESSION,
     ADD_COMPRESSION_POLICY,
+    CREATE_ANOMALIES_TABLE,
+    CREATE_ANOMALIES_HYPERTABLE,
+    CREATE_ANOMALIES_INDEX,
 ]

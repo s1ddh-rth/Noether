@@ -154,11 +154,43 @@ services:
     depends_on:
       migrator:
         condition: service_completed_successfully
+    volumes:
+      - anomaly-models:/app/models:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()"]
       interval: 10s
       timeout: 5s
       retries: 12
+    networks: [noether]
+
+  # ----------------------------------------------- streaming AD worker
+  anomaly-detector:
+    build:
+      context: .
+      dockerfile: services/anomaly-detector/Dockerfile
+    container_name: noether-anomaly-detector
+    profiles: [core, eval]
+    environment:
+      <<: *common-env
+      ANOMALY_WINDOW_S: ${ANOMALY_WINDOW_S:-60}
+      ANOMALY_STRIDE_S: ${ANOMALY_STRIDE_S:-5}
+      ANOMALY_WARMUP_MIN: ${ANOMALY_WARMUP_MIN:-5}
+      ANOMALY_BASELINE_MIN: ${ANOMALY_BASELINE_MIN:-30}
+      ANOMALY_TAGS: ${ANOMALY_TAGS:-XMEAS_1,XMEAS_2,XMEAS_3,XMEAS_4,XMEAS_5,XMEAS_6,XMEAS_7,XMEAS_8,XMV_1,XMV_2}
+      ANOMALY_THRESHOLD: ${ANOMALY_THRESHOLD:-0.95}
+      MODEL_DIR: /app/models
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-noether}
+      POSTGRES_USER: ${POSTGRES_USER:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      ingest:
+        condition: service_started
+    volumes:
+      - anomaly-models:/app/models
     networks: [noether]
 
   # ------------------------------------------------------------------ Grafana
@@ -179,7 +211,21 @@ services:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
     networks: [noether]
 
-  # ---------------------------- one-shot eval harness (profile: eval)
+  # ---------------------------- one-shot anomaly eval (profile: eval)
+  anomaly-eval:
+    build:
+      context: .
+      dockerfile: services/anomaly-detector/Dockerfile
+    container_name: noether-anomaly-eval
+    profiles: [eval]
+    environment:
+      <<: *common-env
+    entrypoint: ["python", "-m", "eval.anomaly_harness"]
+    volumes:
+      - ./eval/results:/app/eval/results
+    networks: [noether]
+
+  # ---------------------------- one-shot forecast eval (profile: eval)
   forecast-eval:
     build:
       context: .
@@ -200,6 +246,7 @@ volumes:
   redpanda-data:
   timescaledb-data:
   grafana-data:
+  anomaly-models:
 
 networks:
   noether:
