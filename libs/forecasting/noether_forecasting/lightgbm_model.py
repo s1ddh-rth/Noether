@@ -1,8 +1,7 @@
 """LightGBM tabular forecaster for one tag.
 
-Wraps `lightgbm.LGBMRegressor` with a small Forecaster-Protocol-shaped surface
-so the API server can swap models behind the same interface later (PatchTST,
-ensemble, etc.).
+Operates on the feature DataFrame produced by `noether_forecasting.features.
+build_features`. Conforms to the persistence/metadata half of `Forecaster`.
 """
 
 from __future__ import annotations
@@ -14,18 +13,9 @@ import joblib
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel
 
 from noether_forecasting.features import FeatureSpec
-
-
-class ForecastResult(BaseModel):
-    tag: str
-    horizon_min: int
-    point: float
-    lower: float
-    upper: float
-    model_version: str
+from noether_forecasting.protocol import ForecastResult
 
 
 @dataclass
@@ -33,6 +23,7 @@ class LightGBMForecaster:
     tag: str
     horizon_min: int = 30
     model_version: str = "lgbm-v0"
+    model_kind: str = "lgbm"
 
     _booster: lgb.Booster | None = None
     _feature_cols: list[str] | None = None
@@ -69,18 +60,15 @@ class LightGBMForecaster:
             callbacks=[lgb.early_stopping(stopping_rounds=20, verbose=False)],
         )
         self._feature_cols = list(X_train.columns)
-        # Hold-out residual std as a crude prediction-interval width. Replace
-        # with quantile regression / conformal in a follow-up change.
         preds = self._booster.predict(X_val, num_iteration=self._booster.best_iteration)
         self._residual_std = float(np.std(np.asarray(y_val) - preds, ddof=1))
 
     def predict(self, X: pd.DataFrame) -> ForecastResult:
+        """Single-row prediction off the most recent feature row."""
         if self._booster is None or self._feature_cols is None:
             raise RuntimeError("model is not fitted or loaded")
-        # Align columns to training order.
         x = X[self._feature_cols].iloc[[-1]]
         point = float(self._booster.predict(x, num_iteration=self._booster.best_iteration)[0])
-        # 95% interval using ±1.96 * residual std.
         half = 1.96 * self._residual_std
         return ForecastResult(
             tag=self.tag,
@@ -89,6 +77,18 @@ class LightGBMForecaster:
             lower=point - half,
             upper=point + half,
             model_version=self.model_version,
+            model_kind="lgbm",
+        )
+
+    def predict_batch(self, X: pd.DataFrame) -> np.ndarray:
+        """Vectorised predictions over a full feature DataFrame; eval-harness use."""
+        if self._booster is None or self._feature_cols is None:
+            raise RuntimeError("model is not fitted or loaded")
+        return np.asarray(
+            self._booster.predict(
+                X[self._feature_cols],
+                num_iteration=self._booster.best_iteration,
+            )
         )
 
     def save(self, path: Path) -> None:
