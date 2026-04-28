@@ -3,7 +3,7 @@
 
 SHELL := bash
 
-.PHONY: help up down logs ps test lint fmt typecheck eval clean
+.PHONY: help up down logs ps test lint fmt typecheck eval eval-forecast eval-anomaly clean
 
 help: ## list common targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -33,8 +33,13 @@ fmt: ## format with black + ruff
 typecheck: ## run mypy
 	uv run --dev mypy libs services
 
-eval: ## run forecast eval harness in a one-shot container
+eval: eval-forecast eval-anomaly ## run both eval harnesses (forecast + anomaly)
+
+eval-forecast: ## run the forecast eval harness in a one-shot container
 	docker compose --profile eval run --rm forecast-eval
+
+eval-anomaly: ## run the anomaly-detection eval harness in a one-shot container
+	docker compose --profile eval run --rm anomaly-eval
 
 clean: ## drop pycache + build artefacts
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
