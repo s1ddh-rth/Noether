@@ -116,16 +116,33 @@ jobs:
           cp .env.example .env
           docker compose --profile core up -d
       - name: Wait for healthy
+        # A service is OK when:
+        #   * it has a healthcheck and it reports "healthy", OR
+        #   * it has no healthcheck (`Health == ""`) and `State == "running"`.
+        # Services with healthchecks: redpanda, timescaledb, inference.
+        # Services without: ingest, storage-consumer, anomaly-detector, grafana
+        #   (those check container State only).
+        # The migrator runs to completion and exits 0 — it's healthy iff it's
+        # exited successfully.
         run: |
           for i in $(seq 1 60); do
-            unhealthy=$(docker compose --profile core ps --format json \
-              | jq -r 'select(.Service != "migrator") | select(.Health == "starting" or .Health == "unhealthy" or .Health == "")| .Service' \
+            not_ok=$(docker compose --profile core ps --all --format json \
+              | jq -r '
+                  select(.Service != "migrator") as $s
+                  | select(
+                      ($s.Health == "starting") or
+                      ($s.Health == "unhealthy") or
+                      ($s.Health == "" and $s.State != "running")
+                    )
+                  | .Service' \
               | grep -v "^$" || true)
-            if [ -z "$unhealthy" ]; then
-              echo "all services healthy"
+            migrator_state=$(docker inspect noether-migrator --format='{{.State.Status}} {{.State.ExitCode}}' 2>/dev/null || echo "missing")
+            if [ -z "$not_ok" ] && [ "$migrator_state" = "exited 0" ]; then
+              echo "all services healthy / running; migrator exited 0"
+              docker compose --profile core ps
               exit 0
             fi
-            echo "waiting on: $unhealthy"
+            echo "waiting on: ${not_ok:-<none>}; migrator=$migrator_state"
             sleep 5
           done
           echo "timed out"
