@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from aiokafka import AIOKafkaProducer
 from noether_ingest import Generator, SyntheticTEP, TagSample
@@ -43,7 +43,7 @@ async def run(settings: IngestSettings, log: BoundLogger) -> None:
     published = 0
     try:
         while True:
-            ts = datetime.now(tz=timezone.utc)
+            ts = datetime.now(tz=UTC)
             sample_dict = gen.step()
 
             # Fire all sends for this tick without awaiting per-message ACKs.

@@ -6,7 +6,7 @@ import asyncio
 import contextlib
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import asyncpg
 from noether_anomaly import (
@@ -94,7 +94,7 @@ async def _score_loop(
     period_s = settings.stride_seconds
     deadline = time.monotonic()
     while True:
-        end = datetime.now(tz=timezone.utc)
+        end = datetime.now(tz=UTC)
         start = end - timedelta(seconds=settings.window_seconds)
         df = await pivot(engine, settings.tag_list, start, end)
         if df.empty:

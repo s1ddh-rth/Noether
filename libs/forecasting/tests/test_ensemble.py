@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-
 from noether_forecasting.ensemble import EnsembleForecaster
 
 

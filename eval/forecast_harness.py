@@ -20,7 +20,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from noether_forecasting.ensemble import EnsembleForecaster
 from noether_forecasting.features import FeatureSpec, build_features, train_val_test_split
 from noether_forecasting.lightgbm_model import LightGBMForecaster

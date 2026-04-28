@@ -16,12 +16,11 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from noether_anomaly import (
     AnomalyEnsemble,
     EWMADetector,
@@ -29,7 +28,6 @@ from noether_anomaly import (
     MahalanobisDetector,
 )
 from noether_ingest import SyntheticTEP, stream_samples
-
 
 # Fault scenarios as a stand-in for TEP fault IDs 1..21. The id is just
 # an integer for the JSON output; the magnitude column says what was
@@ -83,7 +81,7 @@ def _generate_panel(
         fault_profile=fault_profile,
         fault_start_s=pre_fault_minutes * 60,
     )
-    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
     fault_start = start + timedelta(minutes=pre_fault_minutes)
     n = (pre_fault_minutes + fault_minutes) * 60
     rows: list[dict] = []

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 import numpy as np
@@ -100,9 +100,8 @@ class SyntheticTEP:
             values[idx] = values[idx] + 5.0
         elif self.fault_profile == "drift":
             values[idx] = values[idx] + 0.001 * elapsed
-        elif self.fault_profile == "spike":
-            if int(elapsed) % 60 == 0 and int(elapsed) > 0:
-                values[idx] = values[idx] + self._rng.uniform(10.0, 20.0)
+        elif self.fault_profile == "spike" and int(elapsed) > 0 and int(elapsed) % 60 == 0:
+            values[idx] = values[idx] + self._rng.uniform(10.0, 20.0)
         return values
 
 
@@ -117,7 +116,7 @@ def stream_samples(
     Useful for offline training data generation; the live replayer drives
     its own loop with rate limiting.
     """
-    ts = start or datetime.now(tz=timezone.utc)
+    ts = start or datetime.now(tz=UTC)
     while True:
         yield ts, gen.step()
         ts = ts + dt

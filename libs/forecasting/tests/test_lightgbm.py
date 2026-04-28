@@ -1,10 +1,9 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
-
 from noether_forecasting.features import FeatureSpec, build_features, train_val_test_split
 from noether_forecasting.lightgbm_model import LightGBMForecaster
 from noether_forecasting.protocol import Forecaster
@@ -12,7 +11,7 @@ from noether_forecasting.protocol import Forecaster
 
 def _series(hours: int = 12) -> pd.Series:
     n = hours * 3600
-    idx = pd.date_range(start=datetime(2026, 1, 1, tzinfo=timezone.utc), periods=n, freq="1s")
+    idx = pd.date_range(start=datetime(2026, 1, 1, tzinfo=UTC), periods=n, freq="1s")
     rng = np.random.default_rng(7)
     v = 100 + 5 * np.sin(2 * np.pi * np.arange(n) / (24 * 3600)) + 0.5 * rng.standard_normal(n)
     return pd.Series(v, index=idx)
@@ -56,8 +55,8 @@ def test_lgbm_predict_batch_aligned_with_predict(trained_lgbm: LightGBMForecaste
 def test_lgbm_protocol_conformance(trained_lgbm: LightGBMForecaster) -> None:
     assert isinstance(trained_lgbm, Forecaster)
     assert trained_lgbm.model_kind == "lgbm"
-    assert callable(getattr(trained_lgbm, "save"))
-    assert callable(getattr(LightGBMForecaster, "load"))
+    assert callable(trained_lgbm.save)
+    assert callable(LightGBMForecaster.load)
 
 
 def test_lgbm_predict_unfitted_raises() -> None:

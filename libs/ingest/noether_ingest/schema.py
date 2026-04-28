@@ -7,7 +7,7 @@ side-channels (Graphiti, RAG corpus), not on the hot path.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -33,8 +33,8 @@ class TagSample(BaseModel):
     @classmethod
     def _ensure_utc(cls, v: datetime) -> datetime:
         if v.tzinfo is None:
-            return v.replace(tzinfo=timezone.utc)
-        return v.astimezone(timezone.utc)
+            return v.replace(tzinfo=UTC)
+        return v.astimezone(UTC)
 
     @field_validator("value")
     @classmethod

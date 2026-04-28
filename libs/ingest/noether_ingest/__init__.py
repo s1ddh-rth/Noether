@@ -7,7 +7,7 @@ Public API:
     - TAG_NAMES: ordered list of XMEAS_1..41, XMV_1..11.
 """
 
-from noether_ingest.generator import Generator, SyntheticTEP, TAG_NAMES, stream_samples
+from noether_ingest.generator import TAG_NAMES, Generator, SyntheticTEP, stream_samples
 from noether_ingest.schema import Quality, TagSample
 
 __all__ = [

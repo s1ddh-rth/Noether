@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import pandas as pd
 import pytest
-
 from noether_forecasting.features import (
     FeatureSpec,
     build_features,
@@ -15,7 +14,7 @@ from noether_forecasting.features import (
 def _hourly_sine(hours: int = 24, freq_s: int = 1) -> pd.Series:
     n = hours * 3600 // freq_s
     idx = pd.date_range(
-        start=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        start=datetime(2026, 1, 1, tzinfo=UTC),
         periods=n,
         freq=f"{freq_s}s",
     )

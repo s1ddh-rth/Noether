@@ -1,7 +1,5 @@
-import numpy as np
 import pandas as pd
 import pytest
-
 from noether_anomaly import (
     Detector,
     EWMADetector,

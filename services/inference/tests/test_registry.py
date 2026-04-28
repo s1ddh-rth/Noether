@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-
 from noether_svc_inference.deps import ModelRegistry
 
 

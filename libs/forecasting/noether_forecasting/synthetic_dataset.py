@@ -6,10 +6,9 @@ working baseline forecaster — no MLflow round-trip needed for v0.1.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
-
 from noether_ingest import SyntheticTEP, stream_samples
 
 
@@ -24,7 +23,7 @@ def generate_offline_panel(
     robust LightGBM forecaster after resampling to 1-minute means.
     """
     gen = SyntheticTEP(seed=seed)
-    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
     rows: list[dict] = []
     iterator = stream_samples(gen, start=start, dt=timedelta(seconds=1))
     n = duration_hours * 3600

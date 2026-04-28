@@ -1,6 +1,6 @@
 import math
 
-from noether_ingest import SyntheticTEP, TAG_NAMES
+from noether_ingest import TAG_NAMES, SyntheticTEP
 
 
 def test_step_yields_full_tag_set() -> None:

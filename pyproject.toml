@@ -54,7 +54,13 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "C4", "SIM", "RUF"]
-ignore = ["E501"]  # line length handled by black
+ignore = [
+    "E501",   # line length handled by black
+    "N803",   # ML convention — capitalized X_train, X_val, X are universal
+    "N806",   # same — local capitalized variables in ML code
+    "B008",   # FastAPI Depends(...) in default args is canonical
+    "RUF002", # em-dashes in docstrings are intentional
+]
 
 [tool.mypy]
 python_version = "3.11"

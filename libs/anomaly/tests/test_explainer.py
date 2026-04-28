@@ -1,5 +1,4 @@
 import pandas as pd
-
 from noether_anomaly import (
     AnomalyEnsemble,
     EWMADetector,

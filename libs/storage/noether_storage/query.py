@@ -10,14 +10,13 @@ access patterns the rest of the system uses:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Sequence
 
 import pandas as pd
+from noether_ingest import Quality, TagSample
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
-
-from noether_ingest import Quality, TagSample
 
 
 async def latest_value(engine: AsyncEngine, tag: str) -> TagSample | None:

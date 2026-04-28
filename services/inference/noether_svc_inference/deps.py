@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Union
 
 from fastapi import Depends, Header, HTTPException, status
 from noether_forecasting import EnsembleForecaster, LightGBMForecaster, PatchTSTForecaster
 
 from noether_svc_inference.config import InferenceSettings
 
-LoadedForecaster = Union[LightGBMForecaster, PatchTSTForecaster, EnsembleForecaster]
+LoadedForecaster = LightGBMForecaster | PatchTSTForecaster | EnsembleForecaster
 
 
 @lru_cache(maxsize=1)

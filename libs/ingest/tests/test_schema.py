@@ -1,16 +1,15 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
-from pydantic import ValidationError
-
 from noether_ingest import Quality, TagSample
+from pydantic import ValidationError
 
 
 def test_happy_path_round_trip() -> None:
     sample = TagSample(
         tag="XMEAS_1",
         value=42.5,
-        ts=datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
+        ts=datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
     )
     payload = sample.to_kafka_payload()
     restored = TagSample.from_kafka_payload(payload)
@@ -20,13 +19,13 @@ def test_happy_path_round_trip() -> None:
 
 def test_naive_timestamp_coerced_to_utc() -> None:
     sample = TagSample(tag="XMEAS_1", value=1.0, ts=datetime(2026, 1, 1, 12, 0))
-    assert sample.ts.tzinfo == timezone.utc
+    assert sample.ts.tzinfo == UTC
 
 
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
 def test_nonfinite_value_rejected(bad: float) -> None:
     with pytest.raises(ValidationError):
-        TagSample(tag="XMEAS_1", value=bad, ts=datetime.now(tz=timezone.utc))
+        TagSample(tag="XMEAS_1", value=bad, ts=datetime.now(tz=UTC))
 
 
 def test_extra_fields_forbidden() -> None:

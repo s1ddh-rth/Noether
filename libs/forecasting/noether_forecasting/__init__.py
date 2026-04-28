@@ -8,7 +8,7 @@ from noether_forecasting.ensemble import EnsembleForecaster
 from noether_forecasting.features import build_features, resample_1min, train_val_test_split
 from noether_forecasting.lightgbm_model import LightGBMForecaster
 from noether_forecasting.patchtst import PatchTSTForecaster
-from noether_forecasting.protocol import ForecastResult, Forecaster
+from noether_forecasting.protocol import Forecaster, ForecastResult
 
 __all__ = [
     "EnsembleForecaster",

@@ -58,7 +58,7 @@ class Explainer:
                     # is most representative of "now"; we take its absolute
                     # magnitude so contributions can be ranked.
                     contrib = pd.Series(np.abs(sv_arr[-1]), index=det._feature_cols)
-            elif isinstance(det, (MahalanobisDetector, EWMADetector)):
+            elif isinstance(det, MahalanobisDetector | EWMADetector):
                 contrib = det.per_tag_contribution(X).iloc[-1].abs()
             else:
                 # Unknown detector — skip rather than fail open.
