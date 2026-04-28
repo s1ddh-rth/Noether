@@ -61,18 +61,26 @@ class AnomalyEnsemble:
         return np.searchsorted(ref, raw, side="right") / len(ref)
 
     def score(self, X: pd.DataFrame) -> AnomalyResult:
+        """Score one window across all detectors.
+
+        Per-detector window score = mean of per-row rank-normalised scores.
+        Mean (rather than max) gives a calibrated signal: a clean window
+        produces ~0.5, a faulty window approaches 1.0. Max-of-N over rows
+        biases clean windows toward 1 by the standard max-of-N argument
+        (max of N i.i.d. uniforms approaches 1 as N grows). EWMA and
+        Mahalanobis already amplify spike rows internally, so loss of
+        single-row sensitivity here is acceptable.
+
+        Ensemble score = max across detectors — one tripping is enough.
+        """
         if not self.detectors:
             raise RuntimeError("ensemble has no detectors")
         breakdown_acc: dict[str, float] = {}
-        normed_per_det: list[np.ndarray] = []
         for det in self.detectors:
             raw = det.score(X)
             normed = self._rank_normalise(det.name, raw)
-            # The per-window score is the max over rows in the window —
-            # one bad row is enough to make the window suspicious.
-            window_score = float(np.max(normed))
+            window_score = float(np.mean(normed))
             breakdown_acc[det.name] = window_score
-            normed_per_det.append(normed)
         ensemble = float(max(breakdown_acc.values()))
         breakdown = DetectorBreakdown(
             iforest=breakdown_acc.get("iforest", 0.0),

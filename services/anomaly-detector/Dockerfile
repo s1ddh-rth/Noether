@@ -34,10 +34,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --package noether-svc-anomaly
 
 ENV PATH="/opt/venv/bin:${PATH}" \
-    MODEL_DIR=/app/models
+    MODEL_DIR=/app/models \
+    MPLCONFIGDIR=/tmp/matplotlib
 
-RUN mkdir -p /app/models
+RUN mkdir -p /app/models /tmp/matplotlib
 
-USER 1001:1001
+# Run as root for v0.1 — the AD worker writes anomaly_ensemble.joblib into a
+# shared docker volume that the inference container reads read-only. Named
+# volumes are root-owned by default; hardening the user (chown init container
+# + UID 1001:1001) is M4 work alongside the Helm chart.
 
 ENTRYPOINT ["python", "-m", "noether_svc_anomaly"]
