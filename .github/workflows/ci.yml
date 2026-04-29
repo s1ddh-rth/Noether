@@ -12,7 +12,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  UV_VERSION: "0.5.6"
+  # 0.5.6 predates `uv pip install --group <name>` (added in 0.5.21).
+  # The lint job needs that flag to read linter versions from
+  # pyproject.toml's [dependency-groups].dev.
+  UV_VERSION: "0.7.21"
   PYTHON_VERSION: "3.11"
 
 jobs:
