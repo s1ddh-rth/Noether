@@ -1,9 +1,4 @@
-"""Shared pytest fixtures for libs/rag tests.
-
-The actual sample-PDF bytes live in `noether_rag.tests_helpers` so that
-sibling test trees (e.g. `eval/tests/`) can reuse them via their own
-local conftest without copy-paste.
-"""
+"""Re-export of the libs/rag sample-PDF fixture for eval tests."""
 
 from __future__ import annotations
 
@@ -16,7 +11,6 @@ from noether_rag.tests_helpers import sample_pdf_bytes
 
 @pytest.fixture
 def sample_pdf_path(tmp_path: Path) -> Iterator[Path]:
-    """Materialise the embedded sample PDF on disk for a single test."""
     p = tmp_path / "sample.pdf"
     p.write_bytes(sample_pdf_bytes())
     yield p

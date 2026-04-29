@@ -77,3 +77,34 @@ for embeddings and BGE-reranker-base for cross-encoding.
   queries are unchanged.
 - SPEC section 11: scope creep risk. We resist adding query rewriting, HyDE, or
   custom rerankers at v0.1.
+
+## Errata (Phase 2 — 2026-04-30)
+
+- **BGE-M3 is text-only.** The original design listed BGE-M3 as a
+  text-and-image dense embedder, but `BAAI/bge-m3` is a multilingual
+  text-only encoder; there is no image branch. The multimodal path
+  consolidates to **OpenCLIP only** (`open-clip-torch`, ViT-B-32 by
+  default), which has both `encode_image` and `encode_text` in the same
+  shared embedding space. Cross-modal retrieval (text query → P&ID image
+  hit) goes through OpenCLIP's text encoder.
+- **One multimodal Qdrant collection** (`noether_mm_clip`) instead of
+  two. The earlier "BGE-M3 + OpenCLIP, two collections, RRF merge"
+  design degenerates to "OpenCLIP, one collection" without the BGE-M3
+  arm. RRF still applies — across the text RAG collection
+  (`noether_text`, BGE-base) and the multimodal collection
+  (`noether_mm_clip`, OpenCLIP).
+- **Per-collection query embedder.** `retrieve()` now accepts each
+  Qdrant index either bare (uses the top-level `embedder`) or as a
+  `(QdrantIndex, Embedder)` tuple, so the OpenCLIP collection is queried
+  with its own text encoder while the BGE collection uses
+  `BgeTextEmbedder`. Both rankings still merge through the same RRF.
+- **Chunk dedup key.** With two collections sharing
+  `(doc_id, chunk_idx)` for the same page, `chunk_id` alone collides;
+  the merge step now deduplicates by `(source_type, chunk_id)` so text
+  and image chunks for the same page don't shadow each other.
+- **RAGAS benchmark depends on the agent service's LLM.** The full
+  `faithfulness` / `answer_relevancy` / `context_precision` metrics need
+  an LLM to score generated answers; the LLM provider abstraction lands
+  in the next M3 change (`add-agent-system`). For Phase 2 the harness
+  ships retrieval-only (hit-rate against ground-truth lexical tokens),
+  with the plumbing designed to plug LLM-dependent metrics in unchanged.

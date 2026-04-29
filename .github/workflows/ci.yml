@@ -77,12 +77,13 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: uv sync (workspace + dev)
         run: uv sync --all-packages --dev
-      - name: pytest libs/ services/
+      - name: pytest libs/ services/ eval/
         run: |
           uv run pytest \
             libs/ingest libs/storage libs/forecasting libs/anomaly libs/rag \
             services/inference \
-            --cov=libs --cov=services \
+            eval/tests \
+            --cov=libs --cov=services --cov=eval \
             --cov-report=term-missing \
             --cov-report=xml \
             -q

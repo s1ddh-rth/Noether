@@ -95,6 +95,10 @@ pids/
 data/
 !data/.gitkeep
 !data/README.md
+# eval/data holds tiny eval question fixtures (committed); the DVC-managed
+# corpus lives under top-level data/ and stays ignored.
+!eval/data/
+!eval/data/**
 
 # --- Eval artefacts (regenerated; canonical numbers live in docs/benchmarks.md)
 eval/results/*

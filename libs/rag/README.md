@@ -56,6 +56,57 @@ is a no-op for unchanged files.
 | `RAG_TEXT_EMBEDDER` | `BAAI/bge-base-en-v1.5` | dense text model |
 | `RAG_RERANKER` | `BAAI/bge-reranker-base` | cross-encoder |
 | `RAG_DATA_DIR` | `./data/rag-index` | BM25 pickle location |
+| `HF_HUB_CACHE` | `$RAG_MODEL_DIR` if set | OpenCLIP weight cache (set by `OpenClipEmbedder`) |
+
+## Multimodal (P&IDs)
+
+`OpenClipEmbedder` covers both `encode_image(list[PIL.Image])` and
+`encode_text(list[str])` in the same shared embedding space. Ingest
+PDFs as page-rendered images:
+
+```python
+from qdrant_client import QdrantClient
+from noether_rag import OpenClipEmbedder, QdrantIndex
+from noether_rag.ingest import ingest_dir_multimodal
+
+embedder = OpenClipEmbedder()
+mm_idx = QdrantIndex(QdrantClient(url="http://localhost:6333"), "noether_mm_clip")
+ingest_dir_multimodal(src=pdf_dir, qdrant_index=mm_idx, image_embedder=embedder)
+```
+
+For cross-modal retrieval, pass the multimodal index with its own
+embedder when calling `retrieve()`:
+
+```python
+retrieve(
+    "FT-101",
+    embedder=text_embedder,                 # default for plain entries
+    qdrant_indexes=[
+        text_idx,                           # uses default `embedder`
+        (mm_idx, mm_embedder),              # uses OpenCLIP text encoder
+    ],
+    bm25_index=bm,
+)
+```
+
+## Air-gap warm-up
+
+After a one-time online warm, `RAG_MODEL_DIR` (and `HF_HUB_CACHE`)
+contain every weight needed for offline operation. Run this once
+against the network:
+
+```bash
+RAG_MODEL_DIR=./models/rag uv run python -c "
+from noether_rag import BgeTextEmbedder, BgeReranker, OpenClipEmbedder
+BgeTextEmbedder()        # ~440 MB — BAAI/bge-base-en-v1.5
+BgeReranker()            # ~280 MB — BAAI/bge-reranker-base
+OpenClipEmbedder()       # ~600 MB — ViT-B-32 / laion2b_s34b_b79k
+print('warm cache ready in', __import__('os').environ['RAG_MODEL_DIR'])
+"
+```
+
+After that, set `OFFLINE_MODE=1` and the embedders read from cache only;
+no DNS, no Hub calls.
 
 ## Tests
 
@@ -63,5 +114,6 @@ is a no-op for unchanged files.
 uv run pytest libs/rag
 ```
 
-Unit tests use Qdrant's in-memory client (`QdrantClient(":memory:")`) and
-a stub `Embedder` so they don't need docker or model downloads.
+Unit tests use Qdrant's in-memory client (`QdrantClient(":memory:")`),
+a stub `Embedder`, and a mocked OpenCLIP, so they don't need docker or
+model downloads.
