@@ -56,7 +56,7 @@ def test_build_features_columns_match_spec() -> None:
 def test_build_features_target_shifted_by_horizon() -> None:
     s = _hourly_sine(hours=4)
     spec = FeatureSpec(horizon_min=15)
-    X, y = build_features(s, spec)
+    _X, y = build_features(s, spec)
     # The first y value at index t corresponds to s_resampled at t + 15 min.
     s_1min = resample_1min(s).dropna()
     aligned = s_1min.shift(-spec.horizon_min).dropna()
@@ -68,7 +68,7 @@ def test_build_features_target_shifted_by_horizon() -> None:
 def test_train_val_test_split_no_overlap() -> None:
     s = _hourly_sine(hours=10)
     X, y = build_features(s, FeatureSpec(horizon_min=10))
-    X_tr, X_va, X_te, y_tr, y_va, y_te = train_val_test_split(X, y)
+    X_tr, X_va, X_te, _y_tr, _y_va, _y_te = train_val_test_split(X, y)
     assert len(X_tr) + len(X_va) + len(X_te) == len(X)
     # Strict time order — train ends before val starts; val ends before test starts.
     assert X_tr.index.max() < X_va.index.min()

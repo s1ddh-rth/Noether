@@ -50,9 +50,7 @@ class BgeTextEmbedder:
         self._model = SentenceTransformer(model_name, cache_folder=cache)
         dim = self._model.get_sentence_embedding_dimension()
         if dim is None:  # pragma: no cover — sentence-transformers always returns a dim
-            raise RuntimeError(
-                f"sentence-transformers model {model_name!r} reported no dimension"
-            )
+            raise RuntimeError(f"sentence-transformers model {model_name!r} reported no dimension")
         self._dim = int(dim)
 
     @property

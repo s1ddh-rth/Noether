@@ -39,12 +39,12 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install dev tools only
-        # Saves ~3 GB / 5 minutes vs. a full workspace sync — black/ruff don't
-        # need torch / lightgbm / pyod installed.
-        run: |
-          uv pip install --system --upgrade \
-            "black==24.10.0" \
-            "ruff==0.7.4"
+        # Saves ~3 GB / 5 minutes vs. a full workspace sync — black/ruff
+        # don't need torch / lightgbm / pyod installed. Pulling the `dev`
+        # dependency group from pyproject.toml means linter versions track
+        # the source of truth automatically (no hardcoded pins to chase
+        # on every dependabot bump).
+        run: uv pip install --system --group dev pyproject.toml
       - name: black --check
         run: black --check .
       - name: ruff check

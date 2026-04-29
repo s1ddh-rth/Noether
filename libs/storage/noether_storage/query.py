@@ -20,15 +20,13 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 
 async def latest_value(engine: AsyncEngine, tag: str) -> TagSample | None:
-    sql = text(
-        """
+    sql = text("""
         SELECT ts, tag, value, quality
         FROM tag_samples
         WHERE tag = :tag
         ORDER BY ts DESC
         LIMIT 1
-        """
-    )
+        """)
     async with engine.connect() as conn:
         row = (await conn.execute(sql, {"tag": tag})).mappings().first()
     if row is None:
@@ -47,14 +45,12 @@ async def range_query(
     start: datetime,
     end: datetime,
 ) -> list[TagSample]:
-    sql = text(
-        """
+    sql = text("""
         SELECT ts, tag, value, quality
         FROM tag_samples
         WHERE tag = :tag AND ts >= :start AND ts < :end
         ORDER BY ts ASC
-        """
-    )
+        """)
     async with engine.connect() as conn:
         rows = (await conn.execute(sql, {"tag": tag, "start": start, "end": end})).mappings().all()
     return [
@@ -73,14 +69,12 @@ async def pivot(
 
     Used by the forecasting service to build feature matrices in one round-trip.
     """
-    sql = text(
-        """
+    sql = text("""
         SELECT ts, tag, value
         FROM tag_samples
         WHERE tag = ANY(:tags) AND ts >= :start AND ts < :end
         ORDER BY ts ASC
-        """
-    )
+        """)
     async with engine.connect() as conn:
         rows = (
             (await conn.execute(sql, {"tags": list(tags), "start": start, "end": end}))

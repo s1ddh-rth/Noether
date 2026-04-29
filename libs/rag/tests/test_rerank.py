@@ -42,9 +42,10 @@ def test_bge_reranker_orders_by_score_and_caps_at_top_n() -> None:
     fake_ce = MagicMock()
     # third chunk gets the highest score
     fake_ce.predict.return_value = np.array([0.2, 0.5, 0.9])
-    with patch(
-        "noether_rag.rerank.CrossEncoder", return_value=fake_ce
-    ), patch.dict("os.environ", {"RAG_MODEL_DIR": "/tmp/m"}, clear=False):
+    with (
+        patch("noether_rag.rerank.CrossEncoder", return_value=fake_ce),
+        patch.dict("os.environ", {"RAG_MODEL_DIR": "/tmp/m"}, clear=False),
+    ):
         r = BgeReranker()
         chunks = [_chunk(0, "a"), _chunk(1, "b"), _chunk(2, "c")]
         out = r.rerank("q", chunks, top_n=2)
