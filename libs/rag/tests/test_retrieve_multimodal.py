@@ -11,17 +11,16 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+import numpy as np
+import numpy.typing as npt
 from noether_rag.index import Bm25Index, QdrantIndex
 from noether_rag.ingest import ingest_dir, ingest_dir_multimodal
 from noether_rag.retrieve import retrieve
-import numpy as np
-import numpy.typing as npt
-from PIL import Image
-
 from noether_rag.tests_helpers import StubTextEmbedder
+from PIL import Image
+from qdrant_client import QdrantClient
 
 _FloatArray = npt.NDArray[np.float32]
-from qdrant_client import QdrantClient
 
 
 class _SharedSpaceEmbedder:
