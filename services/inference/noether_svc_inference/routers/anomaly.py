@@ -129,13 +129,11 @@ async def explain(
         row = (
             (
                 await conn.execute(
-                    text(
-                        """
+                    text("""
                         SELECT window_start, window_end, score, tags
                         FROM tag_anomalies
                         WHERE alert_id = :alert_id
-                        """
-                    ),
+                        """),
                     {"alert_id": str(body.alert_id)},
                 )
             )

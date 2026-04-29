@@ -11,10 +11,10 @@ from noether_ingest.generator import TAG_NAMES, Generator, SyntheticTEP, stream_
 from noether_ingest.schema import Quality, TagSample
 
 __all__ = [
+    "TAG_NAMES",
     "Generator",
     "Quality",
     "SyntheticTEP",
-    "TAG_NAMES",
     "TagSample",
     "stream_samples",
 ]

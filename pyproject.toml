@@ -11,6 +11,7 @@ dependencies = [
     "noether-storage",
     "noether-forecasting",
     "noether-anomaly",
+    "noether-rag",
     "noether-svc-ingest",
     "noether-svc-storage-consumer",
     "noether-svc-inference",
@@ -39,6 +40,7 @@ noether-ingest = { workspace = true }
 noether-storage = { workspace = true }
 noether-forecasting = { workspace = true }
 noether-anomaly = { workspace = true }
+noether-rag = { workspace = true }
 noether-svc-ingest = { workspace = true }
 noether-svc-storage-consumer = { workspace = true }
 noether-svc-inference = { workspace = true }
@@ -71,7 +73,15 @@ plugins = ["pydantic.mypy"]
 exclude = ["build/", "dist/", ".venv/"]
 
 [[tool.mypy.overrides]]
-module = ["lightgbm.*", "aiokafka.*", "asyncpg.*"]
+module = [
+    "lightgbm.*",
+    "aiokafka.*",
+    "asyncpg.*",
+    "qdrant_client.*",
+    "sentence_transformers.*",
+    "rank_bm25.*",
+    "pypdfium2.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

@@ -12,7 +12,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  UV_VERSION: "0.5.6"
+  # 0.5.6 predates `uv pip install --group <name>` (added in 0.5.21).
+  # The lint job needs that flag to read linter versions from
+  # pyproject.toml's [dependency-groups].dev.
+  UV_VERSION: "0.7.21"
   PYTHON_VERSION: "3.11"
 
 jobs:
@@ -39,12 +42,12 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install dev tools only
-        # Saves ~3 GB / 5 minutes vs. a full workspace sync — black/ruff don't
-        # need torch / lightgbm / pyod installed.
-        run: |
-          uv pip install --system --upgrade \
-            "black==24.10.0" \
-            "ruff==0.7.4"
+        # Saves ~3 GB / 5 minutes vs. a full workspace sync — black/ruff
+        # don't need torch / lightgbm / pyod installed. Pulling the `dev`
+        # dependency group from pyproject.toml means linter versions track
+        # the source of truth automatically (no hardcoded pins to chase
+        # on every dependabot bump).
+        run: uv pip install --system --group dev pyproject.toml
       - name: black --check
         run: black --check .
       - name: ruff check
@@ -77,7 +80,7 @@ jobs:
       - name: pytest libs/ services/
         run: |
           uv run pytest \
-            libs/ingest libs/storage libs/forecasting libs/anomaly \
+            libs/ingest libs/storage libs/forecasting libs/anomaly libs/rag \
             services/inference \
             --cov=libs --cov=services \
             --cov-report=term-missing \

@@ -8,12 +8,12 @@ side-channels (Graphiti, RAG corpus), not on the hot path.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-class Quality(str, Enum):
+class Quality(StrEnum):
     GOOD = "good"
     BAD = "bad"
     UNCERTAIN = "uncertain"

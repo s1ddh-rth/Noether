@@ -58,7 +58,7 @@ def _train_patchtst(panel, tag: str, horizon: int, seed: int, output: Path, max_
 def _train_ensemble(panel, tag: str, horizon: int, seed: int, output: Path, max_steps: int) -> dict:
     series = panel[tag]
     X, y = build_features(series, FeatureSpec(horizon_min=horizon))
-    X_tr, X_va, X_te, y_tr, y_va, y_te = train_val_test_split(X, y)
+    X_tr, X_va, _X_te, y_tr, y_va, _y_te = train_val_test_split(X, y)
 
     n = len(series)
     n_test = int(n * 0.15)
