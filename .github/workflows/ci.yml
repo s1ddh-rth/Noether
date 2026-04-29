@@ -77,7 +77,7 @@ jobs:
       - name: pytest libs/ services/
         run: |
           uv run pytest \
-            libs/ingest libs/storage libs/forecasting libs/anomaly \
+            libs/ingest libs/storage libs/forecasting libs/anomaly libs/rag \
             services/inference \
             --cov=libs --cov=services \
             --cov-report=term-missing \

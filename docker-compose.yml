@@ -193,6 +193,24 @@ services:
       - anomaly-models:/app/models
     networks: [noether]
 
+  # ------------------------------------------------------------------- Qdrant
+  # Vector store for the RAG pipeline (libs/rag). Profile-gated so the M1/M2
+  # `core` smoke test isn't expanded; the agent service in M3 will move it
+  # to the `core` profile when /chat depends on retrieval at startup.
+  qdrant:
+    image: qdrant/qdrant:v1.13.0
+    container_name: noether-qdrant
+    profiles: [rag, eval]
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    # No healthcheck: Qdrant's official image is distroless-ish (no curl,
+    # wget, python, or bash). The agent service change in M3 will add an
+    # SDK-based ping from a depending container instead.
+    networks: [noether]
+
   # ------------------------------------------------------------------ Grafana
   grafana:
     image: grafana/grafana-oss:11.3.1
@@ -258,6 +276,7 @@ volumes:
   timescaledb-data:
   grafana-data:
   anomaly-models:
+  qdrant-data:
 
 networks:
   noether:
