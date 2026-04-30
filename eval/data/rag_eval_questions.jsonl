@@ -1,0 +1,3 @@
+{"question_id": "q1", "question": "What is the calibration status of FT-101?", "expected_doc_token": "FT-101", "notes": "Tag-name lookup; tests BM25 lexical hit on equipment ID."}
+{"question_id": "q2", "question": "When did the steam pressure rise?", "expected_doc_token": "Steam pressure", "notes": "Phrase lookup; tests dense + BM25 fusion on free-text."}
+{"question_id": "q3", "question": "Which operator acknowledged the alarm?", "expected_doc_token": "FT-101", "notes": "Cross-reference; tests retrieval recall on multi-mention docs."}

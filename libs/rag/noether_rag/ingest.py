@@ -19,11 +19,13 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
+from PIL import Image
+
 from noether_rag.chunker import chunk_text
-from noether_rag.embed import Embedder
+from noether_rag.embed import Embedder, ImageEmbedder
 from noether_rag.index import Bm25Index, QdrantIndex
 from noether_rag.models import RagChunk, SourceType
-from noether_rag.parsing import extract_text
+from noether_rag.parsing import extract_page_images, extract_text
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,4 +115,78 @@ def ingest_dir(
         docs_processed=docs_processed,
         docs_skipped=docs_skipped,
         chunks_indexed=len(all_chunks),
+    )
+
+
+def _file_to_image_chunks(path: Path, doc_id: str, dpi: int) -> list[RagChunk]:
+    chunks: list[RagChunk] = []
+    for chunk_idx, page in enumerate(extract_page_images(path, dpi=dpi)):
+        chunks.append(
+            RagChunk(
+                doc_id=doc_id,
+                chunk_idx=chunk_idx,
+                source_type=SourceType.PID_IMAGE,
+                # No body text for image chunks; the diagram is the payload.
+                # The reranker (text-side) won't be effective on these alone,
+                # which is why retrieve() should fuse text + image collections
+                # via RRF before reranking.
+                text="",
+                metadata={
+                    "filename": path.name,
+                    "page": page.page_number,
+                    "dpi": dpi,
+                },
+            )
+        )
+    return chunks
+
+
+def ingest_dir_multimodal(
+    *,
+    src: Path,
+    qdrant_index: QdrantIndex,
+    image_embedder: ImageEmbedder,
+    dpi: int = 100,
+    pattern: str = "*.pdf",
+) -> IngestStats:
+    """Ingest each PDF page as a P&ID-style image chunk into a Qdrant collection.
+
+    Mirrors `ingest_dir` for the multimodal path: SHA-256 dedup at the
+    document level, point-uuid stable across reruns. No BM25 here — image
+    chunks have empty text; sparse retrieval is unhelpful for them, and
+    the agent's multimodal route fuses image hits with text hits from the
+    text-RAG collection at retrieve time.
+    """
+    src = Path(src)
+    qdrant_index.ensure_collection(dim=image_embedder.dim)
+
+    new_chunks: list[RagChunk] = []
+    images_to_embed: list[Image.Image] = []
+    docs_processed = 0
+    docs_skipped = 0
+    # Seed seen_doc_ids from any prior run by scrolling the collection's
+    # payloads. Cheap for v0.1 corpus sizes; if this becomes hot, swap to
+    # a small on-disk manifest like the text path's BM25 pickle.
+    seen_doc_ids: set[str] = set(qdrant_index.known_doc_ids())
+
+    for path in sorted(src.glob(pattern)):
+        doc_id = _file_sha256(path)
+        if doc_id in seen_doc_ids:
+            docs_skipped += 1
+            continue
+        seen_doc_ids.add(doc_id)
+        page_images = extract_page_images(path, dpi=dpi)
+        for chunk in _file_to_image_chunks(path, doc_id, dpi):
+            new_chunks.append(chunk)
+        images_to_embed.extend(p.image for p in page_images)
+        docs_processed += 1
+
+    if new_chunks:
+        vectors = image_embedder.encode_image(images_to_embed)
+        qdrant_index.upsert(new_chunks, vectors)
+
+    return IngestStats(
+        docs_processed=docs_processed,
+        docs_skipped=docs_skipped,
+        chunks_indexed=qdrant_index.count(),
     )

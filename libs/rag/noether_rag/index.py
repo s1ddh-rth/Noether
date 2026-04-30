@@ -95,6 +95,34 @@ class QdrantIndex:
         """Exact point count — useful for tests."""
         return int(self.client.count(collection_name=self.collection, exact=True).count)
 
+    def known_doc_ids(self) -> set[str]:
+        """Walk every point in the collection and return distinct `doc_id`s.
+
+        Used by the multimodal ingest path for cross-run dedup; the
+        text-side ingest gets the same effect for free via the BM25
+        pickle. Safe to call before the collection exists — returns an
+        empty set in that case.
+        """
+        if not self.client.collection_exists(self.collection):
+            return set()
+        out: set[str] = set()
+        next_offset = None
+        while True:
+            points, next_offset = self.client.scroll(
+                collection_name=self.collection,
+                limit=512,
+                with_payload=True,
+                offset=next_offset,
+            )
+            for p in points:
+                payload = p.payload or {}
+                doc_id = payload.get("doc_id")
+                if isinstance(doc_id, str):
+                    out.add(doc_id)
+            if next_offset is None:
+                break
+        return out
+
 
 class Bm25Index:
     """In-memory BM25 sparse retriever, picklable to disk for ingest reuse.
