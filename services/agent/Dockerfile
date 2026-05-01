@@ -41,7 +41,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --package noether-svc-agent || \
     uv sync --no-dev --package noether-svc-agent
 
-ENV PATH="/opt/venv/bin:${PATH}"
+ENV PATH="/opt/venv/bin:${PATH}" \
+    HOME=/tmp \
+    USER=agent
 
 EXPOSE 8100
 USER 1001:1001
