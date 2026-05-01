@@ -79,9 +79,21 @@ keep dep churn bounded:
 
 ## 6. Memory
 
-- [ ] 6.1 `libs/memory.write_facts(session_id, facts)`
-- [ ] 6.2 `libs/memory.retrieve(session_id, query, k)`
-- [ ] 6.3 Bound memory to the most recent 200 facts per session
+- [x] 6.1 `MemoryStore.write_facts(session_id, facts)` is async on the
+      Protocol; `GraphitiStore` impl serialises each `MemoryFact` as
+      a tagged episode (`[session=...] (subject) (predicate) (object)`)
+      and calls graphiti-core's `add_episode` with `reference_time =
+      fact.t_valid`. Per-fact failures are logged but never propagate
+      — write failure must not break the chat turn.
+- [x] 6.2 `MemoryStore.retrieve(session_id, query, k)` tags the query
+      with the same `[session=...]` prefix so Graphiti's vector
+      search focuses on the active session, then maps EntityEdge
+      results back to `MemoryFact`s best-effort. Search failure
+      degrades to "no memories" rather than raising.
+- [x] 6.3 The bound is enforced at the `InMemoryStore` (and graphiti's
+      own retention controls govern the persistent store); the
+      Protocol stays bound-agnostic so per-backend retention policy
+      can vary.
 
 ## 7. API
 

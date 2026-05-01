@@ -63,7 +63,7 @@ class MemoryWriterNode:
         if not facts:
             return 0
         try:
-            self._store.write_facts(session_id, facts)
+            await self._store.write_facts(session_id, facts)
         except Exception:
             logger.warning("memory_writer.store_failed", exc_info=True)
             return 0

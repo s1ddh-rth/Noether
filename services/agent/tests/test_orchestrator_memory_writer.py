@@ -24,7 +24,7 @@ async def test_extracts_and_writes_facts() -> None:
         tool_results=[],
     )
     assert n == 1
-    out = store.retrieve("s1", query="FT-101", k=10)
+    out = await store.retrieve("s1", query="FT-101", k=10)
     assert len(out) == 1
     assert out[0].subject == "FT-101"
     assert out[0].predicate == "threshold_set"
@@ -45,8 +45,8 @@ async def test_session_isolation_through_store() -> None:
     await node.write_turn("a", "q1", "a1", [])
     await node.write_turn("b", "q2", "a2", [])
 
-    a_facts = store.retrieve("a", query="valve", k=5)
-    b_facts = store.retrieve("b", query="valve", k=5)
+    a_facts = await store.retrieve("a", query="valve", k=5)
+    b_facts = await store.retrieve("b", query="valve", k=5)
     assert len(a_facts) == 1
     assert len(b_facts) == 1
     assert a_facts[0].object == "V-1"
@@ -61,7 +61,7 @@ async def test_empty_array_means_zero_writes() -> None:
 
     n = await node.write_turn("s1", "hi", "hello", [])
     assert n == 0
-    assert store.retrieve("s1", query="hi", k=5) == []
+    assert await store.retrieve("s1", query="hi", k=5) == []
 
 
 @pytest.mark.asyncio
@@ -92,7 +92,7 @@ async def test_drops_bad_rows_keeps_good_ones() -> None:
 
     n = await node.write_turn("s1", "q", "a", [])
     assert n == 2
-    assert {f.subject for f in store.retrieve("s1", query="ok", k=10)} == {"ok", "ok2"}
+    assert {f.subject for f in await store.retrieve("s1", query="ok", k=10)} == {"ok", "ok2"}
 
 
 @pytest.mark.asyncio
@@ -100,10 +100,10 @@ async def test_store_exception_returns_zero_not_raises() -> None:
     """Memory persistence is best-effort; never let it kill the chat turn."""
 
     class _BrokenStore:
-        def write_facts(self, *_a: object, **_k: object) -> None:
+        async def write_facts(self, *_a: object, **_k: object) -> None:
             raise RuntimeError("graphiti is down")
 
-        def retrieve(self, *_a: object, **_k: object) -> list[object]:
+        async def retrieve(self, *_a: object, **_k: object) -> list[object]:
             return []
 
     provider = MockProvider(responses=['[{"subject": "x", "predicate": "y", "object": "z"}]'])

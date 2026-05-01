@@ -78,7 +78,7 @@ async def test_full_pipeline_demo_query() -> None:
     # Memory writer persisted one fact.
     assert final["facts_written"] == 1
     # And it actually landed in the store.
-    persisted = store.retrieve("sess-1", query="alert", k=10)
+    persisted = await store.retrieve("sess-1", query="alert", k=10)
     assert len(persisted) == 1
     assert persisted[0].predicate == "root_cause"
     assert persisted[0].object == "calibration_drift"

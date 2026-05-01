@@ -7,6 +7,12 @@ dependencies = [
     "pydantic>=2.9,<3",
 ]
 
+[project.optional-dependencies]
+graphiti = [
+    "graphiti-core>=0.7,<1",
+    "neo4j>=5,<6",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
