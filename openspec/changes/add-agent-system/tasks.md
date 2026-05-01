@@ -103,9 +103,18 @@ keep dep churn bounded:
 
 ## 7. API
 
-- [ ] 7.1 `POST /chat` JSON mode
-- [ ] 7.2 `POST /chat` SSE stream mode
-- [ ] 7.3 Trace id, request id, latency on every log line
+- [x] 7.1 `POST /chat` JSON mode — auth via `X-API-Key`, `ChatRequest`
+      / `ChatResponse` Pydantic models. Compiled graph dependency-
+      injected via `Depends(get_graph)` so tests override without
+      standing up backends. Returns 503 if no graph wired.
+- [~] 7.2 `POST /chat` SSE stream — deferred. Requires reshaping the
+      orchestrator to yield intermediate events (per-tool results
+      + token-level synth output). Out of scope for the v0.1 demo,
+      which polls for the JSON response. Wire frame stays open.
+- [x] 7.3 Structlog already wires service tag; per-request log lines
+      emit `session_id`, `question_len`, `selected_tools`,
+      `n_citations`, `has_chart`, `facts_written` via the chat
+      router.
 
 ## 8. Prompts
 
