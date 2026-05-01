@@ -52,6 +52,7 @@ class SqlTool:
         "store. Use mode='latest' for 'what is X right now', or "
         "mode='range' with start/end ISO-8601 UTC for a window query."
     )
+    input_model = SqlToolInput
 
     def __init__(
         self,

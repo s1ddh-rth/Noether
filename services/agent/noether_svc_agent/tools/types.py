@@ -29,12 +29,21 @@ class ToolResult(BaseModel):
 
 @runtime_checkable
 class AgentTool(Protocol):
-    """Anything the orchestrator can dispatch."""
+    """Anything the orchestrator can dispatch.
+
+    `input_model` is the Pydantic class the orchestrator's parameter
+    extractor uses to validate LLM-produced JSON before calling `run`.
+    Exposing it on the Protocol lets the fan-out node introspect the
+    schema without a per-tool registry — every new tool self-describes.
+    """
 
     @property
     def name(self) -> str: ...
 
     @property
     def description(self) -> str: ...
+
+    @property
+    def input_model(self) -> type[BaseModel]: ...
 
     async def run(self, input: BaseModel) -> ToolResult: ...

@@ -31,6 +31,7 @@ class ForecastTool:
         "Predict the next 30 minutes for a tag given recent history. "
         "Returns a point estimate plus a 95% prediction band."
     )
+    input_model = ForecastToolInput
 
     def __init__(
         self,

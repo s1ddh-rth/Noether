@@ -31,6 +31,7 @@ class AnomalyTool:
         "Score a tag window with the anomaly ensemble and optionally "
         "retrieve the per-tag SHAP explanation for a stored alert id."
     )
+    input_model = AnomalyToolInput
 
     def __init__(
         self,

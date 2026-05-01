@@ -40,6 +40,7 @@ class VizTool:
         "Build a Vega-Lite line chart from one or more named time series. "
         "Use when the user asks for a plot, comparison, or visual overlay."
     )
+    input_model = VizToolInput
 
     async def run(self, input: VizToolInput) -> ToolResult:
         flat_rows = [{"x": p.x, "y": p.y, "series": s.name} for s in input.series for p in s.points]

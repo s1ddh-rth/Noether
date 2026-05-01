@@ -57,10 +57,25 @@ keep dep churn bounded:
 
 ## 5. LangGraph orchestrator
 
-- [ ] 5.1 Router node (LLM-as-classifier with strict JSON output)
-- [ ] 5.2 Parallel tool-fan-out node
-- [ ] 5.3 Synthesiser node assembling answer + citations + viz
-- [ ] 5.4 Memory writer node calling Graphiti
+- [x] 5.1 `RouterNode` — LLM-as-classifier with json_mode, code-fence
+      tolerance, one retry on malformed JSON, `sql` fallback. Bounded
+      to `max_tools=3` per turn.
+- [x] 5.2 `FanOutNode` — `asyncio.gather` over selected tools with
+      `return_exceptions=True` semantics (failed tools log + drop, do
+      not poison siblings). Per-tool input filled by `ParamExtractor`,
+      which validates LLM JSON against each tool's `input_model`.
+- [x] 5.3 `SynthesiserNode` — composes answer, dedupes citations
+      preserving order, picks first non-None vega_spec. Tool result
+      payloads truncated at 1500 chars in the prompt to fit local-LLM
+      context windows; original results remain untouched in state.
+- [x] 5.4 `MemoryWriterNode` — extracts JSON facts, persists via the
+      `MemoryStore` Protocol, swallows store exceptions to keep the
+      chat turn alive. Graphiti adapter slots in behind the same
+      Protocol with task 6.
+- [x] 5.5 `build_graph(...)` — LangGraph StateGraph wiring all four
+      nodes linearly: START → router → fan_out → synthesiser →
+      memory_writer → END. Compiles into a single `ainvoke({...})`
+      entrypoint that the `/chat` endpoint (task 7) will drive.
 
 ## 6. Memory
 
