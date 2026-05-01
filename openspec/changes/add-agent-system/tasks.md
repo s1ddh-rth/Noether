@@ -20,10 +20,15 @@
 
 ## 3. LLM provider abstraction
 
-- [ ] 3.1 Provider factory selecting on `LLM_BACKEND`
-- [ ] 3.2 Ollama implementation
-- [ ] 3.3 OpenAI / Anthropic / Gemini implementations behind extras
-- [ ] 3.4 Unit tests with a mock provider
+- [x] 3.1 `make_provider(AgentSettings)` factory routes on `LLM_BACKEND`.
+- [x] 3.2 `OllamaProvider` over httpx (`/api/chat`, non-streaming, with
+      `format=json` for json_mode). Streaming variant lands with task 7
+      (SSE `/chat`).
+- [~] 3.3 Cloud providers (OpenAI / Anthropic / Gemini): factory raises
+      `NotImplementedError` with install hint until each adapter +
+      optional dep extra is added. Tests pin the contract.
+- [x] 3.4 `MockProvider` (records calls; deterministic queue) +
+      `httpx.MockTransport`-backed `OllamaProvider` tests.
 
 ## 4. Tools (`ToolResult` shape)
 
