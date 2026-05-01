@@ -12,10 +12,12 @@ dependencies = [
     "noether-forecasting",
     "noether-anomaly",
     "noether-rag",
+    "noether-memory",
     "noether-svc-ingest",
     "noether-svc-storage-consumer",
     "noether-svc-inference",
     "noether-svc-anomaly",
+    "noether-svc-agent",
 ]
 
 [dependency-groups]
@@ -41,10 +43,12 @@ noether-storage = { workspace = true }
 noether-forecasting = { workspace = true }
 noether-anomaly = { workspace = true }
 noether-rag = { workspace = true }
+noether-memory = { workspace = true }
 noether-svc-ingest = { workspace = true }
 noether-svc-storage-consumer = { workspace = true }
 noether-svc-inference = { workspace = true }
 noether-svc-anomaly = { workspace = true }
+noether-svc-agent = { workspace = true }
 
 [tool.black]
 line-length = 100
