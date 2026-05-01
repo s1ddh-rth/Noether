@@ -1,11 +1,15 @@
 ## 1. Scaffolding
 
-- [ ] 1.1 Create `services/agent/` with FastAPI app, `Dockerfile`,
-      `pyproject.toml`, `README.md`
-- [ ] 1.2 Create `libs/memory/` Graphiti wrapper with `pyproject.toml`
-      and `README.md`
-- [ ] 1.3 Pin `langgraph`, `graphiti-core`, `neo4j`, `httpx` and
-      provider SDKs as optional extras
+- [x] 1.1 Create `services/agent/` with FastAPI app, `pyproject.toml`,
+      `README.md`. (Dockerfile lands with task 2.x when the agent
+      profile gets added to `docker-compose.yml`.)
+- [x] 1.2 Create `libs/memory/` package with `MemoryFact` model,
+      `MemoryStore` Protocol, and `InMemoryStore` reference impl.
+      Graphiti adapter lands with task 6.
+- [~] 1.3 Pin runtime deps incrementally as each phase imports them
+      (LLM provider SDKs land with task 3; LangGraph with task 5;
+      `graphiti-core` + `neo4j` driver with task 6). Keeps the
+      workspace `uv sync` lean and lets each commit's CI green-bar.
 
 ## 2. Infra
 

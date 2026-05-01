@@ -80,8 +80,8 @@ jobs:
       - name: pytest libs/ services/ eval/
         run: |
           uv run pytest \
-            libs/ingest libs/storage libs/forecasting libs/anomaly libs/rag \
-            services/inference \
+            libs/ingest libs/storage libs/forecasting libs/anomaly libs/rag libs/memory \
+            services/inference services/agent \
             eval/tests \
             --cov=libs --cov=services --cov=eval \
             --cov-report=term-missing \
