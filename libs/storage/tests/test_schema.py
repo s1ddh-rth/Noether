@@ -3,6 +3,7 @@
 from noether_storage.schema import (
     ALL_DDL_NO_RETENTION,
     CREATE_ANOMALIES_TABLE,
+    CREATE_CHAT_SESSIONS_TABLE,
     CREATE_HYPERTABLE,
     CREATE_TABLE,
     add_anomalies_retention_policy_sql,
@@ -14,7 +15,15 @@ def test_schema_includes_required_tables() -> None:
     joined = "\n".join(ALL_DDL_NO_RETENTION)
     assert "tag_samples" in joined
     assert "tag_anomalies" in joined
+    assert "chat_sessions" in joined
     assert "create_hypertable" in joined.lower() or "create_hypertable" in joined
+
+
+def test_chat_sessions_table_has_required_columns() -> None:
+    cols = ["session_id", "created_at", "last_active_at"]
+    for c in cols:
+        assert c in CREATE_CHAT_SESSIONS_TABLE
+    assert "PRIMARY KEY" in CREATE_CHAT_SESSIONS_TABLE
 
 
 def test_tag_samples_has_required_columns() -> None:

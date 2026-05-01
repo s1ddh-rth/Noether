@@ -7,7 +7,7 @@ dependencies = [
     "noether-ingest",
     "noether-storage",
     "noether-rag",
-    "noether-memory",
+    "noether-memory[graphiti]",
     "fastapi>=0.115,<0.116",
     "uvicorn[standard]>=0.32,<0.33",
     "structlog>=24.4,<25",

@@ -13,10 +13,16 @@
 
 ## 2. Infra
 
-- [ ] 2.1 Add Neo4j Community to `docker-compose.yml` with healthcheck
-- [ ] 2.2 Add Ollama container with `llama3.3:8b-instruct` pre-pulled
-      via init container
-- [ ] 2.3 `chat_sessions` Alembic migration in storage repo
+- [x] 2.1 Neo4j Community 5.26 added to `docker-compose.yml` under
+      `agent` profile, with cypher-shell-based healthcheck and
+      laptop-friendly heap sizing.
+- [x] 2.2 Ollama 0.5 added under `agent` profile. Models are pulled
+      at runtime (`docker exec noether-ollama ollama pull llama3.2:3b`)
+      rather than baked into the image — keeps the build fast and the
+      model choice configurable via `OLLAMA_MODEL`.
+- [x] 2.3 `chat_sessions` table added to `noether_storage.schema`
+      (raw SQL DDL like the other tables, no Alembic per the existing
+      pattern). Picked up by the migrator on next compose up.
 
 ## 3. LLM provider abstraction
 

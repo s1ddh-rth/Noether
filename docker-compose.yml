@@ -6,8 +6,18 @@
 #     docker compose --profile core up -d
 #
 # Profiles:
-#     core  — ingest + storage + inference + dependencies (default for M1)
-#     eval  — adds a one-shot job container that runs the forecast harness
+#     core   — ingest + storage + inference + dependencies (default for M1)
+#     eval   — adds one-shot job containers that run the forecast / anomaly harness
+#     rag    — adds Qdrant for the libs/rag pipeline (M3)
+#     agent  — adds Neo4j + Ollama + Qdrant + the agent service (M3 demo end-to-end)
+#
+# Quick start for the agent stack:
+#     docker compose --profile agent up -d
+#     docker exec -it noether-ollama ollama pull llama3.2:3b   # one-time
+#     curl -X POST http://localhost:8100/chat \
+#       -H "X-API-Key: changeme-please" \
+#       -H "Content-Type: application/json" \
+#       -d '{"session_id":"demo","question":"What is FT-101 right now?"}'
 # =============================================================================
 name: noether
 
@@ -20,7 +30,7 @@ services:
   redpanda:
     image: redpandadata/redpanda:v24.2.18
     container_name: noether-redpanda
-    profiles: [core, eval]
+    profiles: [core, eval, agent]
     command:
       - redpanda
       - start
@@ -50,7 +60,7 @@ services:
   timescaledb:
     image: timescale/timescaledb:2.17.2-pg16
     container_name: noether-timescaledb
-    profiles: [core, eval]
+    profiles: [core, eval, agent]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-noether}
       POSTGRES_USER: ${POSTGRES_USER:-noether}
@@ -72,7 +82,7 @@ services:
       context: .
       dockerfile: services/storage-consumer/Dockerfile
     container_name: noether-migrator
-    profiles: [core, eval]
+    profiles: [core, eval, agent]
     environment:
       <<: *common-env
       POSTGRES_HOST: timescaledb
@@ -93,7 +103,7 @@ services:
       context: .
       dockerfile: services/ingest/Dockerfile
     container_name: noether-ingest
-    profiles: [core, eval]
+    profiles: [core, eval, agent]
     environment:
       <<: *common-env
       KAFKA_BOOTSTRAP: redpanda:9092
@@ -113,7 +123,7 @@ services:
       context: .
       dockerfile: services/storage-consumer/Dockerfile
     container_name: noether-storage-consumer
-    profiles: [core, eval]
+    profiles: [core, eval, agent]
     environment:
       <<: *common-env
       KAFKA_BOOTSTRAP: redpanda:9092
@@ -137,7 +147,7 @@ services:
       context: .
       dockerfile: services/inference/Dockerfile
     container_name: noether-inference
-    profiles: [core, eval]
+    profiles: [core, eval, agent]
     environment:
       <<: *common-env
       INFERENCE_HOST: 0.0.0.0
@@ -169,7 +179,7 @@ services:
       context: .
       dockerfile: services/anomaly-detector/Dockerfile
     container_name: noether-anomaly-detector
-    profiles: [core, eval]
+    profiles: [core, eval, agent]
     environment:
       <<: *common-env
       ANOMALY_WINDOW_S: ${ANOMALY_WINDOW_S:-60}
@@ -200,22 +210,115 @@ services:
   qdrant:
     image: qdrant/qdrant:v1.13.0
     container_name: noether-qdrant
-    profiles: [rag, eval]
+    profiles: [rag, eval, agent]
     ports:
       - "6333:6333"
       - "6334:6334"
     volumes:
       - qdrant-data:/qdrant/storage
     # No healthcheck: Qdrant's official image is distroless-ish (no curl,
-    # wget, python, or bash). The agent service change in M3 will add an
-    # SDK-based ping from a depending container instead.
+    # wget, python, or bash). The agent service health-checks Qdrant via
+    # the SDK during its own startup probe instead.
+    networks: [noether]
+
+  # --------------------------------------------------------------------- Neo4j
+  # Graphiti's backing store. Community Edition (Apache 2.0) — single-instance,
+  # which is fine for a single-tenant v0.1 deployment.
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: noether-neo4j
+    profiles: [agent]
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-noetherpw}
+      NEO4J_PLUGINS: '["apoc"]'
+      # Keep memory small for laptop dev; Graphiti's index sizes are modest.
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    ports:
+      - "7474:7474"   # browser UI
+      - "7687:7687"   # bolt protocol
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_USER:-neo4j} -p $${NEO4J_PASSWORD:-noetherpw} 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+    networks: [noether]
+
+  # ------------------------------------------------------------------- Ollama
+  # Default LLM backend in air-gapped mode. Models must be pulled once after
+  # first start: `docker exec -it noether-ollama ollama pull llama3.2:3b`.
+  # The image stays small (~300 MB) — pulling models is a runtime concern.
+  ollama:
+    image: ollama/ollama:0.5.4
+    container_name: noether-ollama
+    profiles: [agent]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: "10m"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [noether]
+
+  # --------------------------------------------- agent service (LangGraph + /chat)
+  agent:
+    build:
+      context: .
+      dockerfile: services/agent/Dockerfile
+    container_name: noether-agent
+    profiles: [agent]
+    environment:
+      <<: *common-env
+      AGENT_HOST: 0.0.0.0
+      AGENT_PORT: 8100
+      AGENT_API_KEY: ${AGENT_API_KEY:-changeme-please}
+      LLM_BACKEND: ${LLM_BACKEND:-ollama}
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      QDRANT_URL: http://qdrant:6333
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-noetherpw}
+      INFERENCE_URL: http://inference:8000
+      INFERENCE_API_KEY: ${INFERENCE_API_KEY:-changeme-please}
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-noether}
+      POSTGRES_USER: ${POSTGRES_USER:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+    ports:
+      - "8100:8100"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      neo4j:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      inference:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/healthz').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
     networks: [noether]
 
   # ------------------------------------------------------------------ Grafana
   grafana:
     image: grafana/grafana-oss:11.3.1
     container_name: noether-grafana
-    profiles: [core, eval]
+    profiles: [core, eval, agent]
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -277,6 +380,8 @@ volumes:
   grafana-data:
   anomaly-models:
   qdrant-data:
+  neo4j-data:
+  ollama-data:
 
 networks:
   noether:

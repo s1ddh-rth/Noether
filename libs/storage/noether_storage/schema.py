@@ -92,6 +92,26 @@ def add_anomalies_retention_policy_sql(retention_days: int) -> str:
     )
 
 
+# --- Chat sessions table (M3) ----------------------------------------------
+# Light per-session metadata for the agent service. Fact memory itself
+# lives in Neo4j via Graphiti; this table only tracks "session exists,
+# session active" so the agent service can expire idle sessions and
+# operators can see "your active conversations" in the frontend.
+
+CREATE_CHAT_SESSIONS_TABLE = """
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    session_id      TEXT        PRIMARY KEY,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_active_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+"""
+
+CREATE_CHAT_SESSIONS_INDEX = """
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_last_active
+    ON chat_sessions (last_active_at DESC);
+"""
+
+
 ALL_DDL_NO_RETENTION = [
     CREATE_EXTENSION,
     CREATE_TABLE,
@@ -102,4 +122,6 @@ ALL_DDL_NO_RETENTION = [
     CREATE_ANOMALIES_TABLE,
     CREATE_ANOMALIES_HYPERTABLE,
     CREATE_ANOMALIES_INDEX,
+    CREATE_CHAT_SESSIONS_TABLE,
+    CREATE_CHAT_SESSIONS_INDEX,
 ]
