@@ -11,5 +11,6 @@ Pipeline (per design.md):
 
 from noether_svc_agent.orchestrator.router import RouterNode
 from noether_svc_agent.orchestrator.state import ChatState
+from noether_svc_agent.orchestrator.synth import SynthesiserNode, SynthesisResult
 
-__all__ = ["ChatState", "RouterNode"]
+__all__ = ["ChatState", "RouterNode", "SynthesisResult", "SynthesiserNode"]
