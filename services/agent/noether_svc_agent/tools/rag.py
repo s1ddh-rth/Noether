@@ -40,6 +40,7 @@ class _RagToolBase:
         "relevant to the user's question. Returns short excerpts with "
         "doc_id:chunk_idx citations."
     )
+    input_model = RagToolInput
 
     def __init__(self, retrieve_fn: RetrieveFn) -> None:
         self._retrieve_fn = retrieve_fn
