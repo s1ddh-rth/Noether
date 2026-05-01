@@ -32,12 +32,21 @@
 
 ## 4. Tools (`ToolResult` shape)
 
-- [ ] 4.1 SQL tool wrapping `libs/storage` queries
-- [ ] 4.2 RAG tool wrapping `libs/rag.retrieve`
+`ToolResult { summary, data, citations, vega_spec }` + `AgentTool`
+runtime-checkable Protocol shipped first; tools land in two waves to
+keep dep churn bounded:
+
+- [ ] 4.1 SQL tool wrapping `libs/storage` queries (next commit —
+      brings noether-storage dep onto services/agent)
+- [ ] 4.2 RAG tool wrapping `libs/rag.retrieve` (next commit — brings
+      noether-rag dep)
 - [ ] 4.3 MultimodalRAG tool (RAG with `source_type=pid_image` filter)
-- [ ] 4.4 Forecast tool (HTTP to `services/inference` `/forecast`)
-- [ ] 4.5 Anomaly tool (HTTP to `/anomaly` and `/explain`)
-- [ ] 4.6 Viz tool that emits Vega-Lite specs
+- [x] 4.4 `ForecastTool` — HTTP to `services/inference` `/forecast`,
+      returns `point` / `lower` / `upper` / `model_kind` in `data`.
+- [x] 4.5 `AnomalyTool` — HTTP to `/anomaly` and (optional) `/explain`;
+      surfaces top-3 SHAP-blended contributions in the summary.
+- [x] 4.6 `VizTool` — emits a Vega-Lite v5 line-chart spec from one or
+      more named time series; pure dict construction, no external dep.
 
 ## 5. LangGraph orchestrator
 
