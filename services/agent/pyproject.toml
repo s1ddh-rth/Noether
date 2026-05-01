@@ -5,6 +5,8 @@ description = "LangGraph-orchestrated agent service: /chat behind a router + sub
 requires-python = ">=3.11,<3.12"
 dependencies = [
     "noether-ingest",
+    "noether-storage",
+    "noether-rag",
     "noether-memory",
     "fastapi>=0.115,<0.116",
     "uvicorn[standard]>=0.32,<0.33",
@@ -26,4 +28,6 @@ packages = ["noether_svc_agent"]
 
 [tool.uv.sources]
 noether-ingest = { workspace = true }
+noether-storage = { workspace = true }
+noether-rag = { workspace = true }
 noether-memory = { workspace = true }

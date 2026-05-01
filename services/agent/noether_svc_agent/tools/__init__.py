@@ -15,6 +15,8 @@ Lands in two waves to keep dep churn small:
 
 from noether_svc_agent.tools.anomaly import AnomalyTool, AnomalyToolInput
 from noether_svc_agent.tools.forecast import ForecastTagPoint, ForecastTool, ForecastToolInput
+from noether_svc_agent.tools.rag import MultimodalRagTool, RagTool, RagToolInput
+from noether_svc_agent.tools.sql import SqlTool, SqlToolInput
 from noether_svc_agent.tools.types import AgentTool, ToolResult
 from noether_svc_agent.tools.viz import VizSeries, VizSeriesPoint, VizTool, VizToolInput
 
@@ -25,6 +27,11 @@ __all__ = [
     "ForecastTagPoint",
     "ForecastTool",
     "ForecastToolInput",
+    "MultimodalRagTool",
+    "RagTool",
+    "RagToolInput",
+    "SqlTool",
+    "SqlToolInput",
     "ToolResult",
     "VizSeries",
     "VizSeriesPoint",

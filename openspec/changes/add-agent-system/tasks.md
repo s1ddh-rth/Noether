@@ -36,11 +36,18 @@
 runtime-checkable Protocol shipped first; tools land in two waves to
 keep dep churn bounded:
 
-- [ ] 4.1 SQL tool wrapping `libs/storage` queries (next commit —
-      brings noether-storage dep onto services/agent)
-- [ ] 4.2 RAG tool wrapping `libs/rag.retrieve` (next commit — brings
-      noether-rag dep)
-- [ ] 4.3 MultimodalRAG tool (RAG with `source_type=pid_image` filter)
+- [x] 4.1 `SqlTool` — wraps `libs/storage.latest_value` and
+      `range_query`; helpers constructor-injected so tests run without
+      Postgres. The wide `pivot` is intentionally not exposed (forecast
+      / anomaly tools own that path upstream).
+- [x] 4.2 `RagTool` — calls `libs/rag.retrieve` via `asyncio.to_thread`.
+      Citations are `doc_id:chunk_idx`; full chunk text is in `data`,
+      summary previews are bounded so the synthesiser doesn't drown in
+      walls of text.
+- [x] 4.3 `MultimodalRagTool` — same base as `RagTool` with distinct
+      `name` + `description` so the router can dispatch P&ID intents
+      explicitly. Expects to be wired to a retrieve_fn bound to the
+      OpenCLIP multimodal Qdrant collection.
 - [x] 4.4 `ForecastTool` — HTTP to `services/inference` `/forecast`,
       returns `point` / `lower` / `upper` / `model_kind` in `data`.
 - [x] 4.5 `AnomalyTool` — HTTP to `/anomaly` and (optional) `/explain`;
