@@ -17,6 +17,7 @@ from noether_ingest.logging import configure  # type: ignore[import-untyped]
 from noether_svc_agent.config import AgentSettings
 from noether_svc_agent.routers import chat as chat_router
 from noether_svc_agent.routers import health as health_router
+from noether_svc_agent.routers import metrics as metrics_router
 
 
 @asynccontextmanager
@@ -41,6 +42,7 @@ def build_app() -> FastAPI:
     )
     app.state.settings = settings
     app.include_router(health_router.router)
+    app.include_router(metrics_router.router)
     app.include_router(chat_router.router)
     return app
 

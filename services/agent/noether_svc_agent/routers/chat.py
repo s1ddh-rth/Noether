@@ -10,11 +10,14 @@ spinning up Ollama / Neo4j / Qdrant.
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
+
+from noether_svc_agent.metrics import CHAT_LATENCY_MS, CHATS_TOTAL, TOOL_CALLS_TOTAL
 
 router = APIRouter(tags=["chat"])
 log = structlog.get_logger(__name__)
@@ -80,18 +83,33 @@ def _check_api_key(
 )
 async def chat(req: ChatRequest, graph: Any = Depends(get_graph)) -> ChatResponse:
     log.info("chat.request", session_id=req.session_id, question_len=len(req.question))
-    final = await graph.ainvoke(
-        {
-            "session_id": req.session_id,
-            "question": req.question,
-        }
-    )
+    started = time.perf_counter()
+    try:
+        final = await graph.ainvoke(
+            {
+                "session_id": req.session_id,
+                "question": req.question,
+            }
+        )
+    except Exception:
+        CHATS_TOTAL.labels(status="error").inc()
+        CHAT_LATENCY_MS.observe((time.perf_counter() - started) * 1000.0)
+        raise
+
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
+    CHATS_TOTAL.labels(status="ok").inc()
+    CHAT_LATENCY_MS.observe(elapsed_ms)
+
+    selected_tools = list(final.get("selected_tools") or [])
+    for tool_name in selected_tools:
+        TOOL_CALLS_TOTAL.labels(tool=tool_name).inc()
+
     response = ChatResponse(
         session_id=req.session_id,
         answer=final.get("answer", ""),
         citations=list(final.get("citations") or []),
         vega_spec=final.get("vega_spec"),
-        selected_tools=list(final.get("selected_tools") or []),
+        selected_tools=selected_tools,
         facts_written=int(final.get("facts_written", 0)),
     )
     log.info(
@@ -101,5 +119,6 @@ async def chat(req: ChatRequest, graph: Any = Depends(get_graph)) -> ChatRespons
         n_citations=len(response.citations),
         has_chart=response.vega_spec is not None,
         facts_written=response.facts_written,
+        latency_ms=round(elapsed_ms, 1),
     )
     return response
