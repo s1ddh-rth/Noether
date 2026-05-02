@@ -84,19 +84,42 @@ should render it directly via Vega-Lite v5.
 
 ## Run
 
+Two paths depending on whether you already have Ollama on the host:
+
+### Path A — fully containerised (clone-and-go)
+
 ```sh
-# 1) Bring up the full stack (~3 min first build):
+# 1) Build + start everything (~3 min first build):
 docker compose --profile agent up -d
 
-# 2) One-time: pull the Ollama model:
+# 2) One-time: pull the model into the dockerized Ollama:
 docker exec -it noether-ollama ollama pull llama3.2:3b
 
 # 3) Hit /chat:
 curl -X POST http://localhost:8100/chat \
   -H "X-API-Key: changeme-please" \
   -H "Content-Type: application/json" \
-  -d '{"session_id":"demo","question":"What is FT-101 right now?"}'
+  -d '{"session_id":"demo","question":"What is XMEAS_1 right now?"}'
 ```
+
+### Path B — reuse host Ollama (Fedora systemd, brew service, etc.)
+
+If `ollama serve` is already running on your host (default port 11434),
+skip the dockerized one and point the agent at the host:
+
+```sh
+# 1) Edit .env (or export inline):
+echo 'OLLAMA_HOST=http://host.docker.internal:11434' >> .env
+
+# 2) Bring up the stack without the dockerized ollama:
+docker compose --profile agent up -d --scale ollama=0
+
+# 3) Hit /chat as in path A — the agent reaches your host Ollama
+#    via the host-gateway alias declared in the compose service.
+```
+
+The agent service declares `extra_hosts: ["host.docker.internal:host-gateway"]`,
+which works on both Docker Desktop (Mac/Windows) and plain Linux Docker.
 
 ## Test
 
