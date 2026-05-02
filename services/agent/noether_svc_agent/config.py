@@ -29,7 +29,7 @@ class AgentSettings(BaseSettings):
     qdrant_url: str = Field(default="http://localhost:6333", alias="QDRANT_URL")
     neo4j_uri: str = Field(default="bolt://localhost:7687", alias="NEO4J_URI")
     neo4j_user: str = Field(default="neo4j", alias="NEO4J_USER")
-    neo4j_password: str = Field(default="noetherpw", alias="NEO4J_PASSWORD")
+    neo4j_password: str = Field(default="changeme-please", alias="NEO4J_PASSWORD")
 
     # ── Postgres (for the SQL tool's AsyncEngine) ───────────────────────────
     postgres_host: str = Field(default="localhost", alias="POSTGRES_HOST")

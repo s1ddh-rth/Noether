@@ -229,7 +229,7 @@ services:
     container_name: noether-neo4j
     profiles: [agent]
     environment:
-      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-noetherpw}
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-changeme-please}
       NEO4J_PLUGINS: '["apoc"]'
       # Keep memory small for laptop dev; Graphiti's index sizes are modest.
       NEO4J_server_memory_heap_initial__size: 256m
@@ -241,7 +241,7 @@ services:
     volumes:
       - neo4j-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_USER:-neo4j} -p $${NEO4J_PASSWORD:-noetherpw} 'RETURN 1' || exit 1"]
+      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_USER:-neo4j} -p $${NEO4J_PASSWORD:-changeme-please} 'RETURN 1' || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -288,7 +288,7 @@ services:
       QDRANT_URL: http://qdrant:6333
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: ${NEO4J_USER:-neo4j}
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-noetherpw}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-changeme-please}
       INFERENCE_URL: http://inference:8000
       INFERENCE_API_KEY: ${INFERENCE_API_KEY:-changeme-please}
       POSTGRES_HOST: timescaledb

@@ -76,7 +76,7 @@ should render it directly via Vega-Lite v5.
 | `OLLAMA_MODEL` | `llama3.2:3b-instruct` | tag must be pulled before first use |
 | `QDRANT_URL` | `http://localhost:6333` | |
 | `NEO4J_URI` | `bolt://localhost:7687` | |
-| `NEO4J_USER` / `NEO4J_PASSWORD` | `neo4j` / `noetherpw` | |
+| `NEO4J_USER` / `NEO4J_PASSWORD` | `neo4j` / `changeme-please` | |
 | `INFERENCE_URL` | `http://localhost:8000` | for forecast/anomaly tools |
 | `INFERENCE_API_KEY` | `changeme-please` | |
 | `OFFLINE_MODE` | `1` | enforces no outbound DNS |
