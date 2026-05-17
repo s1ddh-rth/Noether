@@ -16,5 +16,7 @@ class ConsumerSettings(BaseSettings):
     batch_size: int = Field(default=500, ge=1, le=10000, alias="BATCH_SIZE")
     batch_max_wait_ms: int = Field(default=1000, ge=10, alias="BATCH_MAX_WAIT_MS")
 
+    metrics_port: int = Field(default=9102, ge=1, le=65535, alias="METRICS_PORT")
+
     offline_mode: bool = Field(default=True, alias="OFFLINE_MODE")
     log_level: str = Field(default="info", alias="LOG_LEVEL")

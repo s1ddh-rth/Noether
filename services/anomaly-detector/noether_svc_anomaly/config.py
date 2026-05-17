@@ -37,6 +37,8 @@ class AnomalySettings(BaseSettings):
         alias="ANOMALY_ENSEMBLE_PATH",
     )
 
+    metrics_port: int = Field(default=9103, ge=1, le=65535, alias="METRICS_PORT")
+
     offline_mode: bool = Field(default=True, alias="OFFLINE_MODE")
     log_level: str = Field(default="info", alias="LOG_LEVEL")
 

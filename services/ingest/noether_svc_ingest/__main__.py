@@ -6,6 +6,7 @@ import asyncio
 import signal
 
 from noether_ingest.logging import configure
+from noether_ingest.metrics import start_metrics_server
 
 from noether_svc_ingest.config import IngestSettings
 from noether_svc_ingest.replayer import run
@@ -14,6 +15,7 @@ from noether_svc_ingest.replayer import run
 def main() -> None:
     settings = IngestSettings()
     log = configure(settings.log_level, service="ingest")
+    start_metrics_server(settings.metrics_port, service="ingest")
 
     loop = asyncio.new_event_loop()
     task = loop.create_task(run(settings, log))
