@@ -11,10 +11,12 @@ agent service can import `MemoryStore` without dragging Neo4j into unit
 tests.
 """
 
+from noether_memory.graphiti_store import GraphitiStore
 from noether_memory.models import MemoryFact
 from noether_memory.store import InMemoryStore, MemoryStore
 
 __all__ = [
+    "GraphitiStore",
     "InMemoryStore",
     "MemoryFact",
     "MemoryStore",

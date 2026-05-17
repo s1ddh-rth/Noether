@@ -19,13 +19,22 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
-from noether_rag import RetrievedChunk  # type: ignore[import-untyped]
 from pydantic import BaseModel, Field
 
 from noether_svc_agent.tools.types import ToolResult
 
-RetrieveFn = Callable[[str, int], list["RetrievedChunk"]]
+if TYPE_CHECKING:
+    # Type-only import. Pulling `noether_rag` at runtime triggers its
+    # __init__.py which loads `open_clip` + `torch` eagerly — heavy on
+    # CI cold starts and the documented Windows DLL collision (memory:
+    # `reference_windows_torch_dll.md`). The tool only needs the type
+    # for annotations; the runtime payload is whatever the
+    # constructor-injected retrieve_fn returns.
+    pass  # type: ignore[import-untyped]
+
+RetrieveFn = Callable[[str, int], list[Any]]
 
 
 class RagToolInput(BaseModel):

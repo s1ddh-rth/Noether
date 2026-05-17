@@ -5,10 +5,11 @@ SQLite) must satisfy. The `InMemoryStore` is what unit tests and dev
 mode use — it keeps the latest N facts per session in a deque-style
 list and does naive substring matching for retrieval.
 
-Why so simple here: the real semantic-search retrieval lives in the
-Graphiti adapter (added with task 6 in the change proposal). Tests for
-the orchestrator's memory plumbing only need a deterministic store
-that round-trips facts in insertion order — that's all this is.
+The Protocol is async because the production backend (`GraphitiStore`)
+talks to Neo4j over the network. Sync I/O inside an async chat-turn
+node would block the event loop. `InMemoryStore`'s methods are
+declared async even though they don't await anything — costs nothing
+and keeps the contract uniform.
 """
 
 from __future__ import annotations
@@ -25,9 +26,9 @@ DEFAULT_PER_SESSION_CAP = 200
 class MemoryStore(Protocol):
     """Anything that can persist and retrieve `MemoryFact`s by session."""
 
-    def write_facts(self, session_id: str, facts: list[MemoryFact]) -> None: ...
+    async def write_facts(self, session_id: str, facts: list[MemoryFact]) -> None: ...
 
-    def retrieve(self, session_id: str, query: str, k: int) -> list[MemoryFact]: ...
+    async def retrieve(self, session_id: str, query: str, k: int) -> list[MemoryFact]: ...
 
 
 class InMemoryStore:
@@ -37,7 +38,7 @@ class InMemoryStore:
         cap_per_session: oldest facts evict once a session crosses this
             cap. Mirrors the design constraint (last 200 facts per
             session) so unit tests can exercise the same eviction
-            behaviour the Graphiti adapter will need.
+            behaviour the Graphiti adapter does.
     """
 
     def __init__(self, cap_per_session: int = DEFAULT_PER_SESSION_CAP) -> None:
@@ -46,12 +47,12 @@ class InMemoryStore:
             lambda: deque(maxlen=self._cap)
         )
 
-    def write_facts(self, session_id: str, facts: list[MemoryFact]) -> None:
+    async def write_facts(self, session_id: str, facts: list[MemoryFact]) -> None:
         bucket = self._by_session[session_id]
         for fact in facts:
             bucket.append(fact)
 
-    def retrieve(self, session_id: str, query: str, k: int) -> list[MemoryFact]:
+    async def retrieve(self, session_id: str, query: str, k: int) -> list[MemoryFact]:
         bucket = self._by_session.get(session_id)
         if not bucket:
             return []
