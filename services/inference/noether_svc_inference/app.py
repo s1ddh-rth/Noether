@@ -3,19 +3,22 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from noether_anomaly import AnomalyEnsemble
 from noether_ingest.logging import configure
 from noether_storage import StorageSettings, async_dsn
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from noether_svc_inference.config import InferenceSettings
+from noether_svc_inference.metrics import REQUEST_LATENCY_MS, REQUESTS_TOTAL
 from noether_svc_inference.routers import anomaly as anomaly_router
 from noether_svc_inference.routers import forecast as forecast_router
 from noether_svc_inference.routers import health as health_router
+from noether_svc_inference.routers import metrics as metrics_router
 
 
 class EnsembleHolder:
@@ -69,9 +72,27 @@ def build_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = settings
+
+    @app.middleware("http")
+    async def _record_metrics(request: Request, call_next):  # type: ignore[no-untyped-def]
+        # Label by route path template, not request.url.path, so a 404 on
+        # an unmatched URL can't blow up label cardinality. All real
+        # inference endpoints are static paths anyway.
+        start = time.perf_counter()
+        response = await call_next(request)
+        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        route = request.scope.get("route")
+        path = getattr(route, "path", request.url.path)
+        REQUESTS_TOTAL.labels(
+            method=request.method, path=path, status=str(response.status_code)
+        ).inc()
+        REQUEST_LATENCY_MS.labels(method=request.method, path=path).observe(elapsed_ms)
+        return response
+
     app.include_router(health_router.router)
     app.include_router(forecast_router.router)
     app.include_router(anomaly_router.router)
+    app.include_router(metrics_router.router)
     return app
 
 
