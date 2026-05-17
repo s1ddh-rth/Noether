@@ -105,7 +105,7 @@ eval/results/*
 !eval/results/.gitkeep
 
 # --- ML artefacts ----------------------------------------------------------
-# Anchored to repo root so they don't swallow the services/mlflow source.
+# Anchored to repo root so they don't swallow the infra/mlflow source.
 /mlruns/
 /mlflow/
 /artifacts/

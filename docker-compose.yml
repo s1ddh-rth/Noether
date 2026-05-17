@@ -359,7 +359,7 @@ services:
   mlflow:
     build:
       context: .
-      dockerfile: services/mlflow/Dockerfile
+      dockerfile: infra/mlflow/Dockerfile
     container_name: noether-mlflow
     profiles: [agent, eval]
     command:
