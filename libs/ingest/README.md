@@ -10,6 +10,12 @@ Wire schema and synthetic generators for plant tag streams.
 - `SyntheticTEP` — deterministic TEP-shaped generator with fault injection
   (`none`, `step`, `drift`, `spike`).
 - `TAG_NAMES` — ordered list of `XMEAS_1..41` + `XMV_1..11`.
+- `logging.configure(level, service)` — shared structlog JSON setup.
+- `metrics.start_metrics_server(port, service)` — stands up the
+  Prometheus exposition HTTP server for the worker services (ingest,
+  storage-consumer, anomaly-detector), which have no HTTP framework of
+  their own. Lives here for the same reason `logging` does: every
+  service depends on this lib transitively.
 
 ## Why synthetic instead of real pyTEP
 

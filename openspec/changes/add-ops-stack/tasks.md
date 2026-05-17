@@ -2,7 +2,8 @@
 
 - [ ] 1.1 Consolidate `docker-compose.yml` with profiles (`core`, `eval`,
       `cron`)
-- [ ] 1.2 Add Prometheus, Grafana, MLflow services
+- [x] 1.2 Add Prometheus, Grafana, MLflow services (phase 4a — Grafana
+      pre-existed from M1; Prometheus + MLflow added here)
 - [ ] 1.3 Cold-start budget verified: <60 s after image pull
 - [ ] 1.4 `make up`, `make down`, `make logs` targets
 
@@ -19,11 +20,17 @@
 
 ## 3. Observability
 
-- [ ] 3.1 `prometheus-client` integration in every Python service
-- [ ] 3.2 `prometheus.yml` with all scrape targets
-- [ ] 3.3 Grafana provisioning: datasource + dashboards from
-      `grafana/dashboards/`
-- [ ] 3.4 5 starter dashboards (ingest, storage, inference, agent, frontend)
+- [x] 3.1 `prometheus-client` integration in every Python service —
+      agent had it from M3; inference gets a /metrics route + request
+      middleware; the three workers expose it via the shared
+      `noether_ingest.metrics.start_metrics_server` helper.
+- [x] 3.2 `prometheus.yml` with all scrape targets (one config spans
+      core/eval/agent; off-profile targets read as `down`)
+- [x] 3.3 Grafana provisioning: Prometheus datasource + dashboards
+      from `infra/grafana/provisioning/dashboards/files/`
+- [x] 3.4 5 starter dashboards — platform-overview, inference, agent,
+      ingest, storage-consumer (no "frontend" dashboard: the frontend
+      exposes no metrics in v0.1; overview takes that slot)
 
 ## 4. Drift monitoring
 
@@ -34,10 +41,13 @@
 
 ## 5. MLflow
 
-- [ ] 5.1 MLflow server image in compose + Helm
-- [ ] 5.2 Backend store on Timescale Postgres (separate database)
-- [ ] 5.3 Artefact store on local volume / configurable path
-- [ ] 5.4 Document `MLFLOW_TRACKING_URI` env wiring
+- [~] 5.1 MLflow server image in compose + Helm — compose done (custom
+      image, driver baked for air-gap); Helm template lands in phase 4b
+- [x] 5.2 Backend store on Timescale Postgres (separate `mlflow`
+      database, created by an idempotent initdb script)
+- [x] 5.3 Artefact store on the mlflow-artifacts volume (configurable
+      via `--artifacts-destination`)
+- [x] 5.4 Document `MLFLOW_TRACKING_URI` env wiring (.env.example)
 
 ## 6. CI/CD
 
