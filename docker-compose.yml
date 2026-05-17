@@ -70,6 +70,8 @@ services:
       - "5432:5432"
     volumes:
       - timescaledb-data:/var/lib/postgresql/data
+      # Creates the MLflow backend-store database on first cluster init.
+      - ./infra/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-noether} -d ${POSTGRES_DB:-noether}"]
       interval: 5s
@@ -349,6 +351,34 @@ services:
     # wget, or curl). Grafana surfaces scrape health instead.
     networks: [noether]
 
+  # ------------------------------------------------------------------- MLflow
+  # Experiment / model tracking. Backend store = a dedicated `mlflow`
+  # database on the shared Timescale Postgres (created by initdb);
+  # artefacts on a named volume. Not in `core` so the core smoke build
+  # stays lean — it ships with the full `agent` demo and `eval` runs.
+  mlflow:
+    build:
+      context: .
+      dockerfile: services/mlflow/Dockerfile
+    container_name: noether-mlflow
+    profiles: [agent, eval]
+    command:
+      - --backend-store-uri
+      - postgresql+psycopg2://${POSTGRES_USER:-noether}:${POSTGRES_PASSWORD:-}@timescaledb:5432/mlflow
+      - --artifacts-destination
+      - /mlflow/artifacts
+      - --serve-artifacts
+    environment:
+      <<: *common-env
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-artifacts:/mlflow/artifacts
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    networks: [noether]
+
   # ------------------------------------------------------------------ Grafana
   grafana:
     image: grafana/grafana-oss:11.3.1
@@ -414,6 +444,7 @@ volumes:
   timescaledb-data:
   grafana-data:
   prometheus-data:
+  mlflow-artifacts:
   anomaly-models:
   qdrant-data:
   neo4j-data:
