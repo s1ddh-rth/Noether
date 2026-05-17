@@ -12,10 +12,11 @@
 #     agent  — adds Neo4j + Ollama + Qdrant + the agent service (M3 demo end-to-end)
 #
 # Quick start for the agent stack:
+#     cp .env.example .env                                     # required
 #     docker compose --profile agent up -d
 #     docker exec -it noether-ollama ollama pull llama3.2:3b   # one-time
 #     curl -X POST http://localhost:8100/chat \
-#       -H "X-API-Key: changeme-please" \
+#       -H "X-API-Key: $AGENT_API_KEY" \
 #       -H "Content-Type: application/json" \
 #       -d '{"session_id":"demo","question":"What is FT-101 right now?"}'
 # =============================================================================
@@ -64,7 +65,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-noether}
       POSTGRES_USER: ${POSTGRES_USER:-noether}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (cp .env.example .env)}
     ports:
       - "5432:5432"
     volumes:
@@ -89,7 +90,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-noether}
       POSTGRES_USER: ${POSTGRES_USER:-noether}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (cp .env.example .env)}
     entrypoint: ["python", "-m", "noether_storage.migrations.run"]
     depends_on:
       timescaledb:
@@ -133,7 +134,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-noether}
       POSTGRES_USER: ${POSTGRES_USER:-noether}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (cp .env.example .env)}
     depends_on:
       redpanda:
         condition: service_healthy
@@ -153,12 +154,12 @@ services:
       INFERENCE_HOST: 0.0.0.0
       INFERENCE_PORT: 8000
       MODEL_DIR: /app/models
-      INFERENCE_API_KEY: ${INFERENCE_API_KEY:-changeme-please}
+      INFERENCE_API_KEY: ${INFERENCE_API_KEY:?set INFERENCE_API_KEY in .env (cp .env.example .env)}
       POSTGRES_HOST: timescaledb
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-noether}
       POSTGRES_USER: ${POSTGRES_USER:-noether}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (cp .env.example .env)}
     ports:
       - "8000:8000"
     depends_on:
@@ -193,7 +194,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-noether}
       POSTGRES_USER: ${POSTGRES_USER:-noether}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (cp .env.example .env)}
     depends_on:
       migrator:
         condition: service_completed_successfully
@@ -229,7 +230,11 @@ services:
     container_name: noether-neo4j
     profiles: [agent]
     environment:
-      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-changeme-please}
+      # NEO4J_USER / NEO4J_PASSWORD are also injected as plain env vars so the
+      # healthcheck shell can read them — Neo4j itself only consumes NEO4J_AUTH.
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env (cp .env.example .env)}
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env (cp .env.example .env)}
       NEO4J_PLUGINS: '["apoc"]'
       # Keep memory small for laptop dev; Graphiti's index sizes are modest.
       NEO4J_server_memory_heap_initial__size: 256m
@@ -241,7 +246,7 @@ services:
     volumes:
       - neo4j-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_USER:-neo4j} -p $${NEO4J_PASSWORD:-changeme-please} 'RETURN 1' || exit 1"]
+      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_USER} -p $${NEO4J_PASSWORD} 'RETURN 1' || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -281,21 +286,21 @@ services:
       <<: *common-env
       AGENT_HOST: 0.0.0.0
       AGENT_PORT: 8100
-      AGENT_API_KEY: ${AGENT_API_KEY:-changeme-please}
+      AGENT_API_KEY: ${AGENT_API_KEY:?set AGENT_API_KEY in .env (cp .env.example .env)}
       LLM_BACKEND: ${LLM_BACKEND:-ollama}
       OLLAMA_HOST: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
       QDRANT_URL: http://qdrant:6333
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: ${NEO4J_USER:-neo4j}
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-changeme-please}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env (cp .env.example .env)}
       INFERENCE_URL: http://inference:8000
-      INFERENCE_API_KEY: ${INFERENCE_API_KEY:-changeme-please}
+      INFERENCE_API_KEY: ${INFERENCE_API_KEY:?set INFERENCE_API_KEY in .env (cp .env.example .env)}
       POSTGRES_HOST: timescaledb
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-noether}
       POSTGRES_USER: ${POSTGRES_USER:-noether}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (cp .env.example .env)}
     ports:
       - "8100:8100"
     depends_on:
@@ -328,7 +333,7 @@ services:
     profiles: [core, eval, agent]
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env (cp .env.example .env)}
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_FEATURE_TOGGLES_ENABLE: ""
