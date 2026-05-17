@@ -118,9 +118,13 @@ keep dep churn bounded:
 
 ## 8. Prompts
 
-- [ ] 8.1 Router prompt (intent → tool list)
-- [ ] 8.2 Synthesiser prompt (answer + citations + viz)
-- [ ] 8.3 Fact-extraction prompt for memory writer
+- [x] 8.1 Router prompt (intent → tool list) — `prompts/router.md`,
+      loaded via `load_prompt("router")`.
+- [x] 8.2 Synthesiser prompt (answer + citations + viz) —
+      `prompts/synthesiser.md`. `prompts/param_extractor.md` covers the
+      per-tool input extraction the synth path depends on.
+- [x] 8.3 Fact-extraction prompt for memory writer —
+      `prompts/memory_writer.md`, consumed by `MemoryWriterNode`.
 
 ## 9. Tests
 
