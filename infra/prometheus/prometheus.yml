@@ -1,0 +1,45 @@
+# Noether — Prometheus scrape config (M4 / add-ops-stack phase 4a).
+#
+# Every Noether service exposes the default prometheus_client registry:
+#   - FastAPI services (inference, agent) on their app port at /metrics
+#   - worker services (ingest, storage-consumer, anomaly-detector) on a
+#     dedicated side port via noether_ingest.metrics.start_metrics_server
+#
+# Targets for services not in the active compose profile simply show as
+# `down` in Prometheus — harmless; the scrape config is the union of all
+# profiles so one config works for `core`, `eval`, and `agent`.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: noether
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: inference
+    static_configs:
+      - targets: ["inference:8000"]
+        labels: { service: inference }
+
+  - job_name: agent
+    static_configs:
+      - targets: ["agent:8100"]
+        labels: { service: agent }
+
+  - job_name: ingest
+    static_configs:
+      - targets: ["ingest:9101"]
+        labels: { service: ingest }
+
+  - job_name: storage-consumer
+    static_configs:
+      - targets: ["storage-consumer:9102"]
+        labels: { service: storage-consumer }
+
+  - job_name: anomaly-detector
+    static_configs:
+      - targets: ["anomaly-detector:9103"]
+        labels: { service: anomaly-detector }
