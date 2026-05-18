@@ -11,8 +11,8 @@ helm install noether ./charts/noether -f values.dev.yaml    # laptop
 helm install noether ./charts/noether -f values.airgapped.yaml
 ```
 
-`helm uninstall noether` removes everything (PVCs persist unless
-`persistence.enabled=false`, the dev default).
+`helm uninstall noether` removes the release. Storage cleanup depends on
+`persistence.enabled` — see [Storage](#storage).
 
 ## What it deploys
 
@@ -62,11 +62,23 @@ pre-schema window is expected and within the 5-minute Ready budget.
 
 ## Storage
 
-`inference` (ro) and `anomaly-detector` (rw) share one `ReadWriteOnce`
-`model-store` PVC. On k3d (single node, `local-path` provisioner) both
-pods schedule to the same node, so RWO is sufficient. `anomaly-detector`
-uses a `Recreate` strategy to avoid two pods racing the volume during
-rollouts. Multi-node prod would need RWX (out of scope for v0.1).
+**`persistence.enabled`** (default `true`; `false` in `values.dev.yaml`)
+controls durable state:
+
+| `persistence.enabled` | Data stores (timescaledb, redpanda, qdrant, neo4j, ollama, prometheus, mlflow-artifacts) | Survives `helm uninstall`? |
+|---|---|---|
+| `true` (default) | PVCs (StatefulSet `volumeClaimTemplates` for the four DB/broker stores; standalone PVCs for ollama/prometheus/mlflow) | StatefulSet VCT PVCs **persist** (k8s retains them by design); standalone PVCs are release-owned and **deleted** |
+| `false` (dev) | `emptyDir` — single-replica stores, safe to lose | **Nothing persists** — clean teardown |
+
+`model-store` is the one exception: it is **always** a PVC regardless of
+`persistence.enabled`, because it is a *functional* cross-pod shared
+volume — `inference` (ro) and `anomaly-detector` (rw) share one
+`ReadWriteOnce` PVC; an `emptyDir` would not be shared between the two
+pods. On k3d (single node, `local-path`) both pods schedule to the same
+node so RWO is sufficient; `anomaly-detector` uses a `Recreate` strategy
+to avoid two pods racing the volume during rollouts. It is release-owned,
+so `helm uninstall` deletes it. Multi-node prod would need RWX (out of
+scope for v0.1).
 
 ## Grafana dashboards
 

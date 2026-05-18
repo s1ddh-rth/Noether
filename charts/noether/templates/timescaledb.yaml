@@ -95,6 +95,11 @@ spec:
         - name: initdb
           configMap:
             name: {{ include "noether.componentName" (dict "ctx" . "component" "timescaledb-initdb") }}
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -106,4 +111,5 @@ spec:
         resources:
           requests:
             storage: {{ .Values.persistence.sizes.timescaledb }}
+  {{- end }}
 {{- end }}

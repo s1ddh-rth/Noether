@@ -139,6 +139,26 @@ Usage: {{- include "noether.waitFor" (dict "ctx" . "deps" (list "timescaledb:543
       done
 {{- end -}}
 
+{{/*
+Persistent data volume, with a dev escape hatch. When
+persistence.enabled is false the data store is backed by an emptyDir so
+`helm uninstall` truly leaves nothing behind (these are all single-replica
+data stores — emptyDir is safe). When true, callers emit a PVC /
+volumeClaimTemplate themselves.
+
+Usage (inside a pod spec `volumes:` list):
+  {{- include "noether.dataPodVolume" (dict "ctx" . "name" "data" "claim" "<pvc-name>") | nindent 8 }}
+*/}}
+{{- define "noether.dataPodVolume" -}}
+- name: {{ .name }}
+{{- if .ctx.Values.persistence.enabled }}
+  persistentVolumeClaim:
+    claimName: {{ .claim }}
+{{- else }}
+  emptyDir: {}
+{{- end }}
+{{- end -}}
+
 {{/* Scheduling hints shared by every workload pod spec. */}}
 {{- define "noether.scheduling" -}}
 {{- with .Values.nodeSelector }}

@@ -1,5 +1,6 @@
 {{- if .Values.mlflow.enabled }}
 {{- $component := "mlflow" }}
+{{- if .Values.persistence.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -15,6 +16,7 @@ spec:
     requests:
       storage: {{ .Values.persistence.sizes.mlflowArtifacts }}
 ---
+{{- end }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -64,10 +66,9 @@ spec:
             - --artifacts-destination
             - /mlflow/artifacts
             - --serve-artifacts
-            - --host
-            - "0.0.0.0"
-            - --port
-            - {{ .Values.mlflow.port | quote }}
+            # --host/--port come from the image ENTRYPOINT
+            # (infra/mlflow/Dockerfile: 0.0.0.0:5000); passing them here
+            # too would duplicate the flags. Matches the compose command.
           env:
             {{- include "noether.commonEnv" . | nindent 12 }}
             - name: POSTGRES_PASSWORD
@@ -91,7 +92,5 @@ spec:
           resources:
             {{- include "noether.resources" (dict "ctx" . "res" .Values.mlflow.resources) | nindent 12 }}
       volumes:
-        - name: artifacts
-          persistentVolumeClaim:
-            claimName: {{ include "noether.componentName" (dict "ctx" . "component" "mlflow-artifacts") }}
+        {{- include "noether.dataPodVolume" (dict "ctx" . "name" "artifacts" "claim" (include "noether.componentName" (dict "ctx" . "component" "mlflow-artifacts"))) | nindent 8 }}
 {{- end }}

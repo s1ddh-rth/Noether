@@ -1,5 +1,6 @@
 {{- if .Values.infra.ollama.enabled }}
 {{- $component := "ollama" }}
+{{- if .Values.persistence.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -15,6 +16,7 @@ spec:
     requests:
       storage: {{ .Values.persistence.sizes.ollama }}
 ---
+{{- end }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -71,7 +73,5 @@ spec:
           resources:
             {{- include "noether.resources" (dict "ctx" . "res" .Values.infra.ollama.resources) | nindent 12 }}
       volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+        {{- include "noether.dataPodVolume" (dict "ctx" . "name" "data" "claim" (include "noether.componentName" (dict "ctx" . "component" $component))) | nindent 8 }}
 {{- end }}

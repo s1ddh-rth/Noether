@@ -81,6 +81,12 @@ spec:
             failureThreshold: 30
           resources:
             {{- include "noether.resources" (dict "ctx" . "res" .Values.infra.redpanda.resources) | nindent 12 }}
+      {{- if not .Values.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -92,4 +98,5 @@ spec:
         resources:
           requests:
             storage: {{ .Values.persistence.sizes.redpanda }}
+  {{- end }}
 {{- end }}

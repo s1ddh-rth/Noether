@@ -58,6 +58,12 @@ spec:
             failureThreshold: 12
           resources:
             {{- include "noether.resources" (dict "ctx" . "res" .Values.infra.qdrant.resources) | nindent 12 }}
+      {{- if not .Values.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -69,4 +75,5 @@ spec:
         resources:
           requests:
             storage: {{ .Values.persistence.sizes.qdrant }}
+  {{- end }}
 {{- end }}
