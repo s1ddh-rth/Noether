@@ -1,0 +1,63 @@
+{{- if .Values.services.storageConsumer.enabled }}
+{{- $component := "storage-consumer" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "noether.fullname" . }}-storage-consumer
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: {{ .Values.services.storageConsumer.metricsPort }}
+      targetPort: metrics
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.storageConsumer.replicas }}
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      initContainers:
+        {{- include "noether.waitFor" (dict "ctx" . "deps" (list "redpanda:9092" "timescaledb:5432")) | nindent 8 }}
+      containers:
+        - name: storage-consumer
+          image: {{ include "noether.appImage" (dict "ctx" . "svc" "storage-consumer") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.services.storageConsumer.metricsPort }}
+          env:
+            {{- include "noether.commonEnv" . | nindent 12 }}
+            {{- include "noether.kafkaEnv" . | nindent 12 }}
+            {{- include "noether.dbEnv" . | nindent 12 }}
+            - name: KAFKA_GROUP_ID
+              value: noether-storage-consumer
+            - name: METRICS_PORT
+              value: {{ .Values.services.storageConsumer.metricsPort | quote }}
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.services.storageConsumer.resources) | nindent 12 }}
+{{- end }}

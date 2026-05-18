@@ -1,0 +1,239 @@
+# =============================================================================
+# Noether Helm chart — default values (prod-style on k3d/k3s).
+#
+# Overlays:
+#   values.dev.yaml        — slimmer, single-replica, ephemeral storage
+#   values.airgapped.yaml  — OFFLINE_MODE=1 everywhere, NetworkPolicies on,
+#                            mirror-prefixed images only
+#
+# Values are intentionally flat at the top level (design.md decision:
+# "keep values flat; document overlays").
+# =============================================================================
+
+global:
+  # Prepend to EVERY image reference (app + infra). Set to a mirror prefix
+  # for air-gap, e.g. "registry.internal/". Leave "" for public registries.
+  imageRegistry: ""
+  imagePullPolicy: IfNotPresent
+  # OFFLINE_MODE=1 forbids outbound DNS beyond infra brokers (SPEC section 7).
+  offlineMode: 1
+  logLevel: info
+
+# --- Application images ----------------------------------------------------
+# CI builds one image per service from services/<svc>/Dockerfile and pushes
+# <repository>-<svc>:<tag>. Override `tag` to pin a release; defaults to the
+# chart appVersion.
+image:
+  repository: ghcr.io/s1ddh-rth/noether
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# --- Infrastructure images (single flat list — air-gap mirror source) ------
+# tasks.md 8.1: values.airgapped.yaml references only mirrored images. Keeping
+# every third-party image here (not buried in subchart values) makes the
+# mirror set a one-screen audit.
+images:
+  redpanda: redpandadata/redpanda:v24.2.18
+  timescaledb: timescale/timescaledb:2.17.2-pg16
+  qdrant: qdrant/qdrant:v1.13.0
+  neo4j: neo4j:5.26-community
+  ollama: ollama/ollama:0.5.4
+  prometheus: prom/prometheus:v3.0.1
+  grafana: grafana/grafana-oss:11.3.1
+  # Built from infra/mlflow/Dockerfile by CI (psycopg2 baked for air-gap).
+  mlflow: ghcr.io/s1ddh-rth/noether-mlflow:0.1.0
+
+# --- Secrets ---------------------------------------------------------------
+# Rendered into one Kubernetes Secret. Override via -f or --set; in
+# production supply an externally-managed Secret and set
+# secrets.create=false (SPEC section 11: K8s Secrets are sufficient at v0.1,
+# no SealedSecrets).
+secrets:
+  create: true
+  # name of an existing Secret to use instead of the chart-rendered one.
+  existingSecret: ""
+  postgresPassword: noether
+  inferenceApiKey: changeme-please
+  agentApiKey: changeme-please
+  neo4jPassword: changeme-please
+  grafanaAdminPassword: admin
+
+# --- Shared datastore wiring ----------------------------------------------
+postgres:
+  db: noether
+  user: noether
+  port: 5432
+  # mlflow uses a separate logical DB on the same Postgres (initdb script).
+  mlflowDb: mlflow
+
+kafka:
+  topicPlantTags: plant.tags
+
+persistence:
+  enabled: true
+  storageClass: ""
+  sizes:
+    timescaledb: 8Gi
+    redpanda: 4Gi
+    qdrant: 2Gi
+    neo4j: 2Gi
+    ollama: 8Gi
+    prometheus: 4Gi
+    grafana: 1Gi
+    mlflowArtifacts: 4Gi
+
+# Default resource envelope; per-service `resources:` overrides this.
+defaultResources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# --- Application services --------------------------------------------------
+services:
+  ingest:
+    enabled: true
+    replicas: 1
+    metricsPort: 9101
+    env:
+      REPLAY_HZ: "1.0"
+      SIM_SEED: "42"
+      FAULT_PROFILE: none
+      FAULT_START_S: "0"
+    resources: {}
+
+  storageConsumer:
+    enabled: true
+    replicas: 1
+    metricsPort: 9102
+    resources: {}
+
+  inference:
+    enabled: true
+    replicas: 1
+    port: 8000
+    forecastHorizonMin: 30
+    # ReadWriteOnce model volume shared with anomaly-detector via the same PVC.
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "2", memory: 2Gi }
+
+  anomalyDetector:
+    enabled: true
+    replicas: 1
+    metricsPort: 9103
+    env:
+      ANOMALY_WINDOW_S: "60"
+      ANOMALY_STRIDE_S: "5"
+      ANOMALY_WARMUP_MIN: "5"
+      ANOMALY_BASELINE_MIN: "30"
+      ANOMALY_TAGS: "XMEAS_1,XMEAS_2,XMEAS_3,XMEAS_4,XMEAS_5,XMEAS_6,XMEAS_7,XMEAS_8,XMV_1,XMV_2"
+      ANOMALY_THRESHOLD: "0.95"
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "2", memory: 2Gi }
+
+  agent:
+    enabled: true
+    replicas: 1
+    port: 8100
+    llmBackend: ollama
+    ollamaModel: llama3.2:3b
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "2", memory: 2Gi }
+
+  # Frontend is not built yet (separate add-frontend-dashboard change). The
+  # Deployment/Service/Ingress templates ship now so the wiring is ready;
+  # flip enabled=true once services/frontend exists and CI publishes its
+  # image.
+  frontend:
+    enabled: false
+    replicas: 1
+    port: 3000
+    resources: {}
+
+# --- Model-store volume (shared inference <-> anomaly-detector) ------------
+modelStore:
+  size: 1Gi
+  storageClass: ""
+
+# --- Infrastructure --------------------------------------------------------
+infra:
+  redpanda:
+    enabled: true
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1536Mi }
+  timescaledb:
+    enabled: true
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "2", memory: 2Gi }
+  qdrant:
+    enabled: true
+    resources: {}
+  neo4j:
+    enabled: true
+    # Only needed by the agent (Graphiti memory). Disable if agent disabled.
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  ollama:
+    enabled: true
+    keepAlive: "10m"
+    resources:
+      requests: { cpu: 250m, memory: 1Gi }
+      limits: { cpu: "4", memory: 6Gi }
+
+# --- Ops -------------------------------------------------------------------
+mlflow:
+  enabled: true
+  port: 5000
+  resources: {}
+
+prometheus:
+  enabled: true
+  port: 9090
+  retention: 15d
+  scrapeInterval: 15s
+  resources: {}
+
+grafana:
+  enabled: true
+  port: 3000
+  adminUser: admin
+  anonymous:
+    enabled: true
+    role: Viewer
+  resources: {}
+
+# --- Ingress (frontend only; everything else is ClusterIP) -----------------
+# k3d/k3s ships Traefik as the default IngressClass.
+ingress:
+  enabled: false
+  className: traefik
+  host: noether.local
+  annotations: {}
+  tls: false
+
+# --- NetworkPolicies -------------------------------------------------------
+# Off by default (k3d dev). values.airgapped.yaml sets enabled=true to
+# default-deny ingress and pin egress to in-cluster + DNS only
+# (tasks.md 2.5 / 8.2).
+networkPolicy:
+  enabled: false
+
+# --- Drift monitoring (Evidently CronJob) ----------------------------------
+# Template ships in phase 4c; the values stanza is reserved here so overlays
+# don't need to add it later.
+drift:
+  enabled: false
+  schedule: "0 * * * *"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}

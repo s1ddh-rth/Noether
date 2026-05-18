@@ -1,0 +1,20 @@
+{{- if or .Values.services.inference.enabled .Values.services.anomalyDetector.enabled }}
+# Model artefacts written by the anomaly-detector and read by inference.
+# ReadWriteOnce is sufficient on k3d (single node, local-path provisioner);
+# both pods schedule to the same node. Documented trade-off in README
+# ("Storage").
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "noether.fullname" . }}-model-store
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" "model-store") | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.modelStore.storageClass }}
+  storageClassName: {{ .Values.modelStore.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.modelStore.size }}
+{{- end }}

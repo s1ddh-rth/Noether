@@ -1,0 +1,96 @@
+{{- if .Values.mlflow.enabled }}
+{{- $component := "mlflow" }}
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" "mlflow-artifacts") }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.sizes.mlflowArtifacts }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "noether.fullname" . }}-mlflow
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.mlflow.port }}
+      targetPort: http
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      initContainers:
+        {{- include "noether.waitFor" (dict "ctx" . "deps" (list "timescaledb:5432")) | nindent 8 }}
+      containers:
+        - name: mlflow
+          image: {{ include "noether.image" (dict "ctx" . "ref" .Values.images.mlflow) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          # The image baked psycopg2 so the runtime stays air-gapped
+          # (no pip at start). Backend store = dedicated `mlflow` DB on the
+          # shared Timescale Postgres; artefacts on the PVC.
+          args:
+            - --backend-store-uri
+            - postgresql+psycopg2://{{ .Values.postgres.user }}:$(POSTGRES_PASSWORD)@{{ include "noether.fullname" . }}-timescaledb:{{ .Values.postgres.port }}/{{ .Values.postgres.mlflowDb }}
+            - --artifacts-destination
+            - /mlflow/artifacts
+            - --serve-artifacts
+            # --host/--port come from the image ENTRYPOINT
+            # (infra/mlflow/Dockerfile: 0.0.0.0:5000); passing them here
+            # too would duplicate the flags. Matches the compose command.
+          env:
+            {{- include "noether.commonEnv" . | nindent 12 }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "noether.secretName" . }}
+                  key: postgres-password
+          ports:
+            - name: http
+              containerPort: {{ .Values.mlflow.port }}
+          volumeMounts:
+            - name: artifacts
+              mountPath: /mlflow/artifacts
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 18
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.mlflow.resources) | nindent 12 }}
+      volumes:
+        {{- include "noether.dataPodVolume" (dict "ctx" . "name" "artifacts" "claim" (include "noether.componentName" (dict "ctx" . "component" "mlflow-artifacts"))) | nindent 8 }}
+{{- end }}

@@ -1,0 +1,51 @@
+{{- if .Values.networkPolicy.enabled }}
+# Air-gap posture (tasks.md 2.5 / 8.2): default-deny, then allow only
+# intra-release pod traffic + cluster DNS. No egress to the public
+# internet — OFFLINE_MODE=1 is the app-level guard; this is the
+# network-level enforcement the air-gapped scenario asserts.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" "default-deny") }}
+  labels:
+    {{- include "noether.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" "allow-intra") }}
+  labels:
+    {{- include "noether.labels" . | nindent 4 }}
+spec:
+  # Applies to every Noether pod (shared part-of label).
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Any pod in this release may talk to any other pod in this release.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+    # Cluster DNS (kube-dns / coredns) so Service names resolve.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+{{- end }}

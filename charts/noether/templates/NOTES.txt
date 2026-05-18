@@ -1,0 +1,46 @@
+Noether {{ .Chart.AppVersion }} installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Pods are converging. Watch them become Ready:
+
+  kubectl -n {{ .Release.Namespace }} get pods -w
+
+The schema migration runs as a post-install Helm hook
+("{{ include "noether.componentName" (dict "ctx" . "component" "migrator") }}").
+App pods wait on infra via an init container, so a brief pre-schema
+window is expected — none should land in CrashLoopBackOff.
+
+Reach the services (no Ingress by default — everything is ClusterIP):
+
+  # Inference API
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "noether.fullname" . }}-inference {{ .Values.services.inference.port }}:{{ .Values.services.inference.port }}
+{{- if .Values.services.agent.enabled }}
+
+  # Agent /chat
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "noether.fullname" . }}-agent {{ .Values.services.agent.port }}:{{ .Values.services.agent.port }}
+{{- end }}
+{{- if .Values.grafana.enabled }}
+
+  # Grafana
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "noether.fullname" . }}-grafana {{ .Values.grafana.port }}:{{ .Values.grafana.port }}
+{{- end }}
+{{- if .Values.mlflow.enabled }}
+
+  # MLflow
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "noether.fullname" . }}-mlflow {{ .Values.mlflow.port }}:{{ .Values.mlflow.port }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+
+Frontend Ingress: http://{{ .Values.ingress.host }}/  (add it to /etc/hosts -> your k3d LB IP)
+{{- end }}
+{{- if .Values.services.agent.enabled }}
+
+Ollama has no model yet. Pull one into the running pod (one-time):
+
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "noether.componentName" (dict "ctx" . "component" "ollama") }} -- ollama pull {{ .Values.services.agent.ollamaModel }}
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+
+NetworkPolicies are ENABLED (air-gapped overlay): egress is restricted to
+in-release pods + cluster DNS. Mirror all images listed in values.yaml
+`images:` and `image.repository` before installing.
+{{- end }}

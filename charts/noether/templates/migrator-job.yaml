@@ -1,0 +1,36 @@
+{{- if .Values.services.storageConsumer.enabled }}
+# Alembic schema migration. Runs as a post-install / post-upgrade Helm hook
+# (weight 5 so it fires after Timescale's StatefulSet exists). App pods carry
+# a wait-for-deps initContainer and tolerate a brief pre-schema window, so
+# the release converges without CrashLoopBackOff (spec scenario).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" "migrator") }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" "migrator") | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 10
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" "migrator") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- include "noether.scheduling" . | nindent 6 }}
+      initContainers:
+        {{- include "noether.waitFor" (dict "ctx" . "deps" (list "timescaledb:5432")) | nindent 8 }}
+      containers:
+        - name: migrator
+          image: {{ include "noether.appImage" (dict "ctx" . "svc" "storage-consumer") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "noether_storage.migrations.run"]
+          env:
+            {{- include "noether.commonEnv" . | nindent 12 }}
+            {{- include "noether.dbEnv" . | nindent 12 }}
+{{- end }}

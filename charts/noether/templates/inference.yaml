@@ -1,0 +1,87 @@
+{{- if .Values.services.inference.enabled }}
+{{- $component := "inference" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "noether.fullname" . }}-inference
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.services.inference.port }}
+      targetPort: http
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.inference.replicas }}
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      initContainers:
+        {{- include "noether.waitFor" (dict "ctx" . "deps" (list "timescaledb:5432")) | nindent 8 }}
+      containers:
+        - name: inference
+          image: {{ include "noether.appImage" (dict "ctx" . "svc" "inference") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.inference.port }}
+          env:
+            {{- include "noether.commonEnv" . | nindent 12 }}
+            {{- include "noether.dbEnv" . | nindent 12 }}
+            - name: INFERENCE_HOST
+              value: "0.0.0.0"
+            - name: INFERENCE_PORT
+              value: {{ .Values.services.inference.port | quote }}
+            - name: FORECAST_HORIZON_MIN
+              value: {{ .Values.services.inference.forecastHorizonMin | quote }}
+            - name: MODEL_DIR
+              value: /app/models
+            - name: INFERENCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "noether.secretName" . }}
+                  key: inference-api-key
+          volumeMounts:
+            - name: model-store
+              mountPath: /app/models
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.services.inference.resources) | nindent 12 }}
+      volumes:
+        - name: model-store
+          persistentVolumeClaim:
+            claimName: {{ include "noether.fullname" . }}-model-store
+{{- end }}
