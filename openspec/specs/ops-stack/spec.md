@@ -1,7 +1,12 @@
 # ops-stack Specification
 
 ## Purpose
-TBD - created by archiving change add-ops-stack. Update Purpose after archive.
+Provide a cohesive dev (docker compose) and prod-style (Helm on k3d/k3s)
+deployment for Noether, with observability (Prometheus + Grafana),
+input-drift monitoring (Evidently), experiment tracking (MLflow), and
+CI/CD that builds, tests, and publishes the project — all operable
+fully air-gapped (`OFFLINE_MODE=1`, mirrored images, NetworkPolicies).
+
 ## Requirements
 ### Requirement: Compose cold-start budget
 `docker compose up` against pre-pulled images SHALL bring the full
