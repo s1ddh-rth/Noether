@@ -25,6 +25,7 @@ data:
       {{- end }}
       {{- if .Values.infra.timescaledb.enabled }}
       - name: TimescaleDB
+        uid: TimescaleDB
         type: postgres
         access: proxy
         url: {{ $fullname }}-timescaledb:{{ .Values.postgres.port }}

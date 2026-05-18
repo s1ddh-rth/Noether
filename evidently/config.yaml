@@ -1,0 +1,36 @@
+# Evidently drift-monitoring configuration (add-ops-stack task 4.1).
+#
+# Defines the reference baseline the drift job compares the live ingest
+# window against. Loaded + validated by noether_drift.config.DriftConfig.
+# Operational knobs (output path, cadence, DB) are env-driven via
+# DriftSettings — only the analytical definition lives here so it is
+# reviewable in one place.
+
+# The reference baseline is the `reference_window_hours` of tag history
+# immediately preceding the current window.
+reference_window_hours: 24.0
+
+# The live window evaluated for drift (most recent N hours of ingest).
+current_window_hours: 1.0
+
+# Plant tags monitored for input drift. Matches the anomaly-detector's
+# default tag set (the variables the model actually consumes).
+tags:
+  - XMEAS_1
+  - XMEAS_2
+  - XMEAS_3
+  - XMEAS_4
+  - XMEAS_5
+  - XMEAS_6
+  - XMEAS_7
+  - XMEAS_8
+  - XMV_1
+  - XMV_2
+
+# Dataset-level drift is declared when the share of drifted columns
+# exceeds this (Evidently's own default is 0.5).
+drift_share_threshold: 0.5
+
+# Minimum rows required in each window; below this the run is recorded
+# as `insufficient_data` instead of a misleading verdict.
+min_rows: 30

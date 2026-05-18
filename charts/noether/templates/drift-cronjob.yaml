@@ -1,0 +1,64 @@
+{{- if .Values.drift.enabled }}
+{{- $component := "drift" }}
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" "drift-reports") }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.drift.reportsSize }}
+---
+{{- end }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  schedule: {{ .Values.drift.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.drift.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.drift.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      # Insufficient-data exits 2; let the schedule retry rather than
+      # hammering restarts within a single Job.
+      backoffLimit: 1
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          {{- include "noether.scheduling" . | nindent 10 }}
+          initContainers:
+            {{- include "noether.waitFor" (dict "ctx" . "deps" (list "timescaledb:5432")) | nindent 12 }}
+          containers:
+            - name: drift
+              image: {{ include "noether.image" (dict "ctx" . "ref" .Values.images.drift) }}
+              imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+              env:
+                {{- include "noether.commonEnv" . | nindent 16 }}
+                {{- include "noether.dbEnv" . | nindent 16 }}
+                - name: DRIFT_OUTPUT_DIR
+                  value: /drift-reports
+                - name: DRIFT_CONFIG
+                  value: evidently/config.yaml
+              volumeMounts:
+                - name: reports
+                  mountPath: /drift-reports
+              resources:
+                {{- include "noether.resources" (dict "ctx" . "res" .Values.drift.resources) | nindent 16 }}
+          volumes:
+            {{- include "noether.dataPodVolume" (dict "ctx" . "name" "reports" "claim" (include "noether.componentName" (dict "ctx" . "component" "drift-reports"))) | nindent 12 }}
+{{- end }}

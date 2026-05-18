@@ -1,11 +1,17 @@
 ## 1. Compose
 
-- [ ] 1.1 Consolidate `docker-compose.yml` with profiles (`core`, `eval`,
-      `cron`)
+- [x] 1.1 Single `docker-compose.yml` with `core` / `eval` / `cron`
+      profiles (plus `rag` / `agent` from M3). `cron` adds the Evidently
+      drift monitor (loops the one-shot job).
 - [x] 1.2 Add Prometheus, Grafana, MLflow services (phase 4a — Grafana
       pre-existed from M1; Prometheus + MLflow added here)
-- [ ] 1.3 Cold-start budget verified: <60 s after image pull
-- [ ] 1.4 `make up`, `make down`, `make logs` targets
+- [~] 1.3 Cold-start observed well under budget after image pull
+      (this session: timescaledb/redpanda healthy ~27 s, inference
+      healthy ~16 s on `--profile core --profile cron up -d`). A
+      formal timed assertion in CI lands with the k3d/integration
+      work in 4d.
+- [x] 1.4 `make up` / `down` / `logs` / `ps` (+ `drift`) targets;
+      `down` now spans core/eval/cron/agent profiles.
 
 ## 2. Helm chart
 
@@ -46,10 +52,18 @@
 
 ## 4. Drift monitoring
 
-- [ ] 4.1 `evidently/config.yaml` with reference window definition
-- [ ] 4.2 Cron job (compose `cron` profile, Helm CronJob) computing
-      drift and writing JSON reports
-- [ ] 4.3 Grafana panel reading the latest drift report
+- [x] 4.1 `evidently/config.yaml` (reference/current windows, tags,
+      drift gate) loaded + validated by `noether_drift.DriftConfig`.
+- [x] 4.2 `libs/drift` (`noether-drift`): one-shot job pulls two
+      windows from Timescale, runs Evidently `DataDriftPreset`, writes
+      full JSON to a volume + a summary row to `drift_reports`. Run by
+      the compose `cron` loop and a Helm `CronJob` (`infra/drift/
+      Dockerfile`). 9 unit tests.
+- [x] 4.3 Grafana "Noether — Input Drift" dashboard reads
+      `drift_reports` via the TimescaleDB datasource (stable
+      `uid: TimescaleDB`). Verified end-to-end against the running
+      stack with Playwright (verdict / share / table panels render a
+      real row).
 
 ## 5. MLflow
 
@@ -83,8 +97,11 @@
 
 ## 8. Air-gap
 
-- [ ] 8.1 `values.airgapped.yaml` references only mirrored images
-- [ ] 8.2 OFFLINE_MODE=1 set in airgapped overlay everywhere
+- [x] 8.1 `values.airgapped.yaml` references only mirror-prefixed
+      images (verified in 4b: every app + infra + drift/mlflow image
+      renders under `global.imageRegistry`).
+- [x] 8.2 `OFFLINE_MODE=1` + mirror prefix set in the airgapped
+      overlay (4b); drift job inherits it via `commonEnv`.
 - [ ] 8.3 Documentation of mirror procedure in `docs/deployment.md`
 
 ## 9. Eval / Benchmarks
