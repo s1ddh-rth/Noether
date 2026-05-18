@@ -89,6 +89,14 @@ module = [
     "pypdfium2.*",
     "open_clip.*",
     "ragas.*",
+    "evidently.*",
+    "yaml",
+    "pandas",
+    # Workspace libs aren't PEP 561-marked yet; treat as untyped deps
+    # for now (typing-debt ratchet, same approach as the third-party
+    # entries above).
+    "noether_ingest.*",
+    "noether_storage.*",
 ]
 ignore_missing_imports = true
 

@@ -79,21 +79,31 @@
 
 ## 6. CI/CD
 
-- [ ] 6.1 `.github/workflows/ci.yml`: lint, type, unit, integration,
-      build, push (main only)
-- [ ] 6.2 Path-filtered eval jobs: forecast harness, AD harness, RAGAS
+- [x] 6.1 `ci.yml`: lint (black+ruff) · type (mypy, scoped to
+      `libs/drift/noether_drift` — typing-debt ratchet noted in-job) ·
+      unit (pytest) · integration (compose smoke + k3d e2e) · build
+      (7-image matrix) · push to GHCR on `push`/main.
+- [ ] 6.2 Path-filtered eval jobs: forecast harness, AD harness,
+      RAGAS — deferred to 4e (release/benchmarks phase).
 - [ ] 6.3 Render benchmark Markdown into `docs/benchmarks.md` and
-      open a PR if changed (nightly)
-- [ ] 6.4 GHCR push with semver tag on release; `:latest` on main
+      open a PR if changed (nightly) — 4e.
+- [x] 6.4 `docker/metadata-action`: `:latest` on main, `:sha`, and
+      `{{version}}`/`{{major}}.{{minor}}` semver on release tags;
+      pushes only on `push` events (PRs build-only, no creds).
 
 ## 7. Tests
 
-- [ ] 7.1 Compose smoke test (every healthcheck passes within budget)
-- [~] 7.2 `helm lint` + `helm template` (all 3 overlays) + kubeconform
-      schema validation run in CI (`helm-lint` job). `helm install`
-      against a real k3d cluster in CI lands in phase 4c.
-- [ ] 7.3 Air-gapped overlay verified in CI by blocking egress in a
-      kind/k3d network policy
+- [x] 7.1 `compose smoke` job builds the core stack and waits until
+      every healthcheck is healthy / running (migrator exits 0) within
+      the timeout budget.
+- [x] 7.2 `helm lint` + `helm template` (3 overlays) + kubeconform
+      (`helm-lint`) **and** a real `k3d-e2e` job: k3d cluster +
+      `helm install` (infra + ops subset — public images, keeps the
+      run in budget; app images covered by compose smoke + the
+      `images` job) + assert every Pod Ready, zero CrashLoopBackOff.
+- [x] 7.3 `k3d-e2e` applies the airgapped-overlay NetworkPolicies
+      over the release and proves a release-labelled pod cannot reach
+      the public internet (egress blocked → step fails if it can).
 
 ## 8. Air-gap
 
