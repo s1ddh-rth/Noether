@@ -142,7 +142,6 @@
       explicit post-v0.1 follow-up rather than shipping a dead link.
 - [x] 10.4 `LICENSE` (Apache 2.0) and `CONTRIBUTING.md` present at
       repo root (committed in earlier milestones; verified).
-- [ ] 10.5 Tag `v0.1.0` — a release tag is cut from `main` **after**
-      this PR merges and `openspec archive add-ops-stack` runs. It
-      must not be tagged from the feature branch; this is the documented
-      final release step, executed post-merge.
+- [x] 10.5 Tag `v0.1.0` — cut from `main` after the M4 phases merged
+      (#16–#20) and `openspec archive add-ops-stack` ran; applied as
+      the final step alongside this archive.
