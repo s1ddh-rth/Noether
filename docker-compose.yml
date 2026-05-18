@@ -70,6 +70,8 @@ services:
       - "5432:5432"
     volumes:
       - timescaledb-data:/var/lib/postgresql/data
+      # Creates the MLflow backend-store database on first cluster init.
+      - ./infra/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-noether} -d ${POSTGRES_DB:-noether}"]
       interval: 5s
@@ -113,6 +115,7 @@ services:
       SIM_SEED: ${SIM_SEED:-42}
       FAULT_PROFILE: ${FAULT_PROFILE:-none}
       FAULT_START_S: ${FAULT_START_S:-0}
+      METRICS_PORT: ${INGEST_METRICS_PORT:-9101}
     depends_on:
       redpanda:
         condition: service_healthy
@@ -130,6 +133,7 @@ services:
       KAFKA_BOOTSTRAP: redpanda:9092
       KAFKA_TOPIC_PLANT_TAGS: ${KAFKA_TOPIC_PLANT_TAGS:-plant.tags}
       KAFKA_GROUP_ID: noether-storage-consumer
+      METRICS_PORT: ${STORAGE_METRICS_PORT:-9102}
       POSTGRES_HOST: timescaledb
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-noether}
@@ -189,6 +193,7 @@ services:
       ANOMALY_BASELINE_MIN: ${ANOMALY_BASELINE_MIN:-30}
       ANOMALY_TAGS: ${ANOMALY_TAGS:-XMEAS_1,XMEAS_2,XMEAS_3,XMEAS_4,XMEAS_5,XMEAS_6,XMEAS_7,XMEAS_8,XMV_1,XMV_2}
       ANOMALY_THRESHOLD: ${ANOMALY_THRESHOLD:-0.95}
+      METRICS_PORT: ${ANOMALY_METRICS_PORT:-9103}
       MODEL_DIR: /app/models
       POSTGRES_HOST: timescaledb
       POSTGRES_PORT: 5432
@@ -326,6 +331,54 @@ services:
       retries: 12
     networks: [noether]
 
+  # --------------------------------------------------------------- Prometheus
+  # Scrapes /metrics off every Noether service. One scrape config covers all
+  # profiles; targets not in the active profile just read as `down`.
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    container_name: noether-prometheus
+    profiles: [core, eval, agent]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    # No healthcheck: the prom/prometheus image is distroless (no shell,
+    # wget, or curl). Grafana surfaces scrape health instead.
+    networks: [noether]
+
+  # ------------------------------------------------------------------- MLflow
+  # Experiment / model tracking. Backend store = a dedicated `mlflow`
+  # database on the shared Timescale Postgres (created by initdb);
+  # artefacts on a named volume. Not in `core` so the core smoke build
+  # stays lean — it ships with the full `agent` demo and `eval` runs.
+  mlflow:
+    build:
+      context: .
+      dockerfile: infra/mlflow/Dockerfile
+    container_name: noether-mlflow
+    profiles: [agent, eval]
+    command:
+      - --backend-store-uri
+      - postgresql+psycopg2://${POSTGRES_USER:-noether}:${POSTGRES_PASSWORD:-}@timescaledb:5432/mlflow
+      - --artifacts-destination
+      - /mlflow/artifacts
+      - --serve-artifacts
+    environment:
+      <<: *common-env
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-artifacts:/mlflow/artifacts
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    networks: [noether]
+
   # ------------------------------------------------------------------ Grafana
   grafana:
     image: grafana/grafana-oss:11.3.1
@@ -390,6 +443,8 @@ volumes:
   redpanda-data:
   timescaledb-data:
   grafana-data:
+  prometheus-data:
+  mlflow-artifacts:
   anomaly-models:
   qdrant-data:
   neo4j-data:

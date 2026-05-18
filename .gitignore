@@ -105,9 +105,10 @@ eval/results/*
 !eval/results/.gitkeep
 
 # --- ML artefacts ----------------------------------------------------------
-mlruns/
-mlflow/
-artifacts/
+# Anchored to repo root so they don't swallow the infra/mlflow source.
+/mlruns/
+/mlflow/
+/artifacts/
 *.ckpt
 *.pt
 *.pth

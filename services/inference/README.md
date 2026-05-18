@@ -84,6 +84,15 @@ contributions come from `shap.TreeExplainer`; Mahalanobis and EWMA use
 analytic per-tag breakdowns. See
 [`libs/anomaly/README.md`](../../libs/anomaly/README.md) for details.
 
+### `GET /metrics`
+
+Prometheus exposition (default registry). An HTTP middleware records
+`inference_requests_total{method,path,status}` and
+`inference_request_latency_ms{method,path}` (labelled by route template,
+so unmatched URLs can't inflate label cardinality). Scraped by the
+`prometheus` service; visualised by the *Noether — Inference* Grafana
+dashboard.
+
 ## Env vars
 
 | Var | Default |

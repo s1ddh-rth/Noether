@@ -17,5 +17,7 @@ class IngestSettings(BaseSettings):
     fault_profile: str = Field(default="none", alias="FAULT_PROFILE")
     fault_start_s: int = Field(default=0, ge=0, alias="FAULT_START_S")
 
+    metrics_port: int = Field(default=9101, ge=1, le=65535, alias="METRICS_PORT")
+
     offline_mode: bool = Field(default=True, alias="OFFLINE_MODE")
     log_level: str = Field(default="info", alias="LOG_LEVEL")

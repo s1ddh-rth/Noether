@@ -8,6 +8,7 @@ dependencies = [
     "pydantic-settings>=2.6,<3",
     "numpy>=1.26,<2.2",
     "structlog>=24.4,<25",
+    "prometheus-client>=0.21,<0.22",
 ]
 
 [build-system]
