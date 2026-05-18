@@ -196,3 +196,174 @@ jobs:
               | /tmp/kubeconform -strict -ignore-missing-schemas -summary
             echo "::endgroup::"
           done
+
+  # -------------------------------------------------------------------------
+  # Typecheck — mypy strict. Scoped to libs/drift/noether_drift: that is
+  # the M4 new code that is fully typed. Repo-wide mypy is a separate
+  # typing-debt ratchet (older libs predate py.typed); widen this glob as
+  # packages get marked, mirroring the coverage ratchet in pyproject.
+  # -------------------------------------------------------------------------
+  typecheck:
+    name: typecheck (mypy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            **/pyproject.toml
+          ignore-nothing-to-cache: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: uv sync (workspace + dev)
+        run: uv sync --all-packages --dev
+      - name: mypy
+        run: uv run mypy libs/drift/noether_drift
+
+  # -------------------------------------------------------------------------
+  # Images — build every service + infra image. On push to main (and on
+  # release tags) log in to GHCR and push :sha + :latest (semver on tag).
+  # On PRs: build only (no creds, no push) so the Dockerfiles stay green.
+  # -------------------------------------------------------------------------
+  images:
+    name: images (build${{ github.event_name == 'push' && ' + push' || '' }})
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: noether-ingest
+            dockerfile: services/ingest/Dockerfile
+          - name: noether-storage-consumer
+            dockerfile: services/storage-consumer/Dockerfile
+          - name: noether-inference
+            dockerfile: services/inference/Dockerfile
+          - name: noether-anomaly-detector
+            dockerfile: services/anomaly-detector/Dockerfile
+          - name: noether-agent
+            dockerfile: services/agent/Dockerfile
+          - name: noether-mlflow
+            dockerfile: infra/mlflow/Dockerfile
+          - name: noether-drift
+            dockerfile: infra/drift/Dockerfile
+    steps:
+      - uses: actions/checkout@v6
+      - name: Free runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+                       /usr/local/share/boost /opt/hostedtoolcache
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=long
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - name: Build${{ github.event_name == 'push' && ' + push' || '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  # -------------------------------------------------------------------------
+  # k3d e2e — install the chart on a real single-node k3s and assert the
+  # spec scenario: every Pod Ready, zero CrashLoopBackOff (tasks 7.2).
+  # Scoped to infra + ops (public images k3d can pull) so the run stays
+  # under the budget without building/importing the heavy app images;
+  # the app images are exercised by `compose smoke` and published by the
+  # `images` job. Then asserts the airgapped NetworkPolicies actually
+  # block pod egress (tasks 7.3).
+  # -------------------------------------------------------------------------
+  k3d-e2e:
+    name: k3d install + air-gap egress
+    runs-on: ubuntu-latest
+    needs: [helm-lint]
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+      - name: Install k3d + create cluster
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/v5.7.4/install.sh | bash
+          k3d cluster create noether --agents 0 --wait --timeout 120s
+          kubectl cluster-info
+      - name: helm install (infra + ops subset)
+        run: |
+          helm install noether charts/noether \
+            -f charts/noether/values.dev.yaml \
+            --set services.ingest.enabled=false \
+            --set services.storageConsumer.enabled=false \
+            --set services.inference.enabled=false \
+            --set services.anomalyDetector.enabled=false \
+            --set services.agent.enabled=false \
+            --set infra.neo4j.enabled=false \
+            --set infra.ollama.enabled=false \
+            --set mlflow.enabled=false \
+            --set drift.enabled=false \
+            --wait --timeout 8m
+      - name: Assert no CrashLoopBackOff and all Ready
+        run: |
+          kubectl get pods -o wide
+          if kubectl get pods -o jsonpath='{range .items[*]}{.status.containerStatuses[*].state.waiting.reason}{"\n"}{end}' \
+              | grep -q CrashLoopBackOff; then
+            echo "::error::a pod is in CrashLoopBackOff"
+            kubectl get pods; kubectl describe pods; exit 1
+          fi
+          kubectl wait --for=condition=Ready pod --all --timeout=120s
+      - name: Air-gap egress is blocked by NetworkPolicy
+        run: |
+          # Re-render only the NetworkPolicies from the airgapped overlay
+          # and apply them over the running release, then prove a pod
+          # carrying the release label cannot reach the public internet.
+          helm template noether charts/noether \
+            -f charts/noether/values.airgapped.yaml \
+            --show-only templates/networkpolicy.yaml | kubectl apply -f -
+          kubectl run egress-probe \
+            --image=curlimages/curl:8.10.1 --restart=Never \
+            --labels=app.kubernetes.io/instance=noether \
+            --command -- sleep 30
+          kubectl wait --for=condition=Ready pod/egress-probe --timeout=60s
+          if kubectl exec egress-probe -- \
+              curl -s --max-time 8 https://1.1.1.1 >/dev/null; then
+            echo "::error::egress reached the internet despite NetworkPolicy"
+            exit 1
+          fi
+          echo "egress correctly blocked by the airgapped NetworkPolicy"
+      - name: Diagnostics
+        if: failure()
+        run: |
+          kubectl get pods -A
+          kubectl describe pods
+          helm status noether || true
+      - name: Tear down
+        if: always()
+        run: k3d cluster delete noether || true
