@@ -13,6 +13,7 @@ dependencies = [
     "noether-anomaly",
     "noether-rag",
     "noether-memory",
+    "noether-drift",
     "noether-svc-ingest",
     "noether-svc-storage-consumer",
     "noether-svc-inference",
@@ -44,6 +45,7 @@ noether-forecasting = { workspace = true }
 noether-anomaly = { workspace = true }
 noether-rag = { workspace = true }
 noether-memory = { workspace = true }
+noether-drift = { workspace = true }
 noether-svc-ingest = { workspace = true }
 noether-svc-storage-consumer = { workspace = true }
 noether-svc-inference = { workspace = true }

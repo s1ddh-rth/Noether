@@ -10,6 +10,7 @@
 #     eval   — adds one-shot job containers that run the forecast / anomaly harness
 #     rag    — adds Qdrant for the libs/rag pipeline (M3)
 #     agent  — adds Neo4j + Ollama + Qdrant + the agent service (M3 demo end-to-end)
+#     cron   — adds the Evidently drift monitor (M4; loops the one-shot job)
 #
 # Quick start for the agent stack:
 #     cp .env.example .env                                     # required
@@ -397,6 +398,42 @@ services:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
     networks: [noether]
 
+  # ------------------------------------------------ drift monitor (cron)
+  # Evidently input-drift job. compose has no native cron, so the `cron`
+  # profile runs the one-shot job in a sleep loop; Helm uses a real
+  # CronJob. Writes full JSON to the drift-reports volume and a summary
+  # row to the drift_reports table (Grafana charts it via Timescale).
+  drift:
+    build:
+      context: .
+      dockerfile: infra/drift/Dockerfile
+    container_name: noether-drift
+    profiles: [cron]
+    environment:
+      <<: *common-env
+      DRIFT_OUTPUT_DIR: /drift-reports
+      DRIFT_INTERVAL_S: ${DRIFT_INTERVAL_S:-3600}
+      DRIFT_CONFIG: evidently/config.yaml
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-noether}
+      POSTGRES_USER: ${POSTGRES_USER:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    entrypoint:
+      - /bin/sh
+      - -c
+      # `|| true` keeps the loop alive when a run exits non-zero on
+      # insufficient data (expected before the reference window fills).
+      - 'while true; do python -m noether_drift || true; sleep "${DRIFT_INTERVAL_S:-3600}"; done'
+    # No depends_on: `cron` augments `core`/`agent` (it needs their
+    # Timescale + ingested data). Declaring depends_on across profiles
+    # makes `--profile cron` alone an invalid project — same reason the
+    # eval one-shots omit it. The loop's `|| true` + sleep absorbs the
+    # brief pre-migration / pre-data window.
+    volumes:
+      - drift-reports:/drift-reports
+    networks: [noether]
+
   # ---------------------------- one-shot anomaly eval (profile: eval)
   anomaly-eval:
     build:
@@ -449,6 +486,7 @@ volumes:
   qdrant-data:
   neo4j-data:
   ollama-data:
+  drift-reports:
 
 networks:
   noether:

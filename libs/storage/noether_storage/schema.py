@@ -112,6 +112,34 @@ CREATE INDEX IF NOT EXISTS idx_chat_sessions_last_active
 """
 
 
+# --- Drift reports table (M4 / add-ops-stack task 4) -----------------------
+# One compact row per drift evaluation. Full Evidently JSON lives on the
+# drift-reports volume; this table is what Grafana charts via the existing
+# TimescaleDB datasource (no extra exporter needed).
+
+CREATE_DRIFT_REPORTS_TABLE = """
+CREATE TABLE IF NOT EXISTS drift_reports (
+    ts               TIMESTAMPTZ NOT NULL,
+    reference_start  TIMESTAMPTZ NOT NULL,
+    reference_end    TIMESTAMPTZ NOT NULL,
+    current_start    TIMESTAMPTZ NOT NULL,
+    current_end      TIMESTAMPTZ NOT NULL,
+    n_features       INTEGER     NOT NULL,
+    n_drifted        INTEGER     NOT NULL,
+    drift_share      DOUBLE PRECISION NOT NULL,
+    dataset_drift    BOOLEAN     NOT NULL,
+    status           TEXT        NOT NULL,
+    report_path      TEXT,
+    PRIMARY KEY (ts)
+);
+"""
+
+CREATE_DRIFT_REPORTS_INDEX = """
+CREATE INDEX IF NOT EXISTS idx_drift_reports_ts
+    ON drift_reports (ts DESC);
+"""
+
+
 ALL_DDL_NO_RETENTION = [
     CREATE_EXTENSION,
     CREATE_TABLE,
@@ -124,4 +152,6 @@ ALL_DDL_NO_RETENTION = [
     CREATE_ANOMALIES_INDEX,
     CREATE_CHAT_SESSIONS_TABLE,
     CREATE_CHAT_SESSIONS_INDEX,
+    CREATE_DRIFT_REPORTS_TABLE,
+    CREATE_DRIFT_REPORTS_INDEX,
 ]

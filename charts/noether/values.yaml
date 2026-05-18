@@ -42,6 +42,8 @@ images:
   grafana: grafana/grafana-oss:11.3.1
   # Built from infra/mlflow/Dockerfile by CI (psycopg2 baked for air-gap).
   mlflow: ghcr.io/s1ddh-rth/noether-mlflow:0.1.0
+  # Built from infra/drift/Dockerfile by CI (Evidently baked).
+  drift: ghcr.io/s1ddh-rth/noether-drift:0.1.0
 
 # --- Secrets ---------------------------------------------------------------
 # Rendered into one Kubernetes Secret. Override via -f or --set; in
@@ -227,11 +229,21 @@ networkPolicy:
   enabled: false
 
 # --- Drift monitoring (Evidently CronJob) ----------------------------------
-# Template ships in phase 4c; the values stanza is reserved here so overlays
-# don't need to add it later.
+# Enabled by default — the Grafana drift dashboard expects the
+# drift_reports table to be populated. Reports JSON persisted to a PVC
+# (gated by persistence.enabled like every other volume); the compact
+# summary row goes to the shared Timescale `drift_reports` table.
 drift:
-  enabled: false
+  enabled: true
   schedule: "0 * * * *"
+  # Match evidently/config.yaml — the CronJob reads it from the image.
+  reportsSize: 1Gi
+  # Keep the last N successful/failed CronJob pods for debugging.
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 1Gi }
 
 nodeSelector: {}
 tolerations: []
