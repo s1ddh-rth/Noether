@@ -1,0 +1,68 @@
+# =============================================================================
+# values.dev.yaml — laptop / k3d development overlay.
+#
+#   helm install noether ./charts/noether -f charts/noether/values.dev.yaml
+#
+# Goals: fast, small, throwaway. Single replicas, tiny resource requests,
+# ephemeral storage so `helm uninstall` leaves nothing behind, anonymous
+# Grafana, and the frontend Ingress on noether.local.
+# =============================================================================
+
+global:
+  imagePullPolicy: IfNotPresent
+  logLevel: debug
+
+# Local k3d builds are loaded with `k3d image import`; never pull.
+image:
+  pullPolicy: IfNotPresent
+
+persistence:
+  enabled: false
+  # local-path (k3d default) honours empty storageClass; sizes shrunk.
+  sizes:
+    timescaledb: 2Gi
+    redpanda: 2Gi
+    qdrant: 1Gi
+    neo4j: 1Gi
+    ollama: 6Gi
+    prometheus: 1Gi
+    grafana: 512Mi
+    mlflowArtifacts: 1Gi
+
+defaultResources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+services:
+  inference:
+    resources:
+      requests: { cpu: 50m, memory: 128Mi }
+      limits: { cpu: "1", memory: 1536Mi }
+  anomalyDetector:
+    resources:
+      requests: { cpu: 50m, memory: 128Mi }
+      limits: { cpu: "1", memory: 1536Mi }
+  agent:
+    resources:
+      requests: { cpu: 50m, memory: 128Mi }
+      limits: { cpu: "1", memory: 1536Mi }
+
+infra:
+  ollama:
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { cpu: "4", memory: 4Gi }
+
+# Expose the frontend on http://noether.local/ via k3d's bundled Traefik.
+# (No-op until services.frontend.enabled=true once the frontend ships.)
+ingress:
+  enabled: false
+  className: traefik
+  host: noether.local
+
+networkPolicy:
+  enabled: false

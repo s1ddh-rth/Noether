@@ -1,0 +1,109 @@
+{{- if .Values.infra.timescaledb.enabled }}
+{{- $component := "timescaledb" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" "timescaledb-initdb") }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+data:
+  01-create-mlflow-db.sql: |
+    -- Idempotently create the MLflow backend-store database on first
+    -- cluster init (chart parity with infra/postgres/initdb).
+    SELECT 'CREATE DATABASE {{ .Values.postgres.mlflowDb }}'
+    WHERE NOT EXISTS (
+      SELECT FROM pg_database WHERE datname = '{{ .Values.postgres.mlflowDb }}'
+    )\gexec
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "noether.fullname" . }}-timescaledb
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: {{ .Values.postgres.port }}
+      targetPort: postgres
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  serviceName: {{ include "noether.fullname" . }}-timescaledb
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      containers:
+        - name: timescaledb
+          image: {{ include "noether.image" (dict "ctx" . "ref" .Values.images.timescaledb) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.db | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "noether.secretName" . }}
+                  key: postgres-password
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+          readinessProbe:
+            exec:
+              command:
+                ["pg_isready", "-U", "{{ .Values.postgres.user }}", "-d", "{{ .Values.postgres.db }}"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            exec:
+              command:
+                ["pg_isready", "-U", "{{ .Values.postgres.user }}", "-d", "{{ .Values.postgres.db }}"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.infra.timescaledb.resources) | nindent 12 }}
+      volumes:
+        - name: initdb
+          configMap:
+            name: {{ include "noether.componentName" (dict "ctx" . "component" "timescaledb-initdb") }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.sizes.timescaledb }}
+{{- end }}

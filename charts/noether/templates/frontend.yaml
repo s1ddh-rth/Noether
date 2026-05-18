@@ -1,0 +1,56 @@
+{{- if .Values.services.frontend.enabled }}
+{{- $component := "frontend" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "noether.fullname" . }}-frontend
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.services.frontend.port }}
+      targetPort: http
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.frontend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      containers:
+        - name: frontend
+          image: {{ include "noether.appImage" (dict "ctx" . "svc" "frontend") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.frontend.port }}
+          env:
+            {{- include "noether.commonEnv" . | nindent 12 }}
+            - name: NEXT_PUBLIC_INFERENCE_URL
+              value: http://{{ include "noether.fullname" . }}-inference:{{ .Values.services.inference.port }}
+            - name: NEXT_PUBLIC_AGENT_URL
+              value: http://{{ include "noether.fullname" . }}-agent:{{ .Values.services.agent.port }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.services.frontend.resources) | nindent 12 }}
+{{- end }}

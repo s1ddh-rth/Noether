@@ -1,0 +1,77 @@
+{{- if .Values.infra.ollama.enabled }}
+{{- $component := "ollama" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.sizes.ollama }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "noether.fullname" . }}-ollama
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 11434
+      targetPort: http
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      containers:
+        - name: ollama
+          image: {{ include "noether.image" (dict "ctx" . "ref" .Values.images.ollama) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 11434
+          env:
+            - name: OLLAMA_KEEP_ALIVE
+              value: {{ .Values.infra.ollama.keepAlive | quote }}
+          volumeMounts:
+            - name: data
+              mountPath: /root/.ollama
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "ollama list >/dev/null 2>&1"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 12
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.infra.ollama.resources) | nindent 12 }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+{{- end }}

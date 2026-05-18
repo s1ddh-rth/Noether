@@ -161,3 +161,38 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose --profile core down -v
+
+  # -------------------------------------------------------------------------
+  # Helm lint — validates the chart and every overlay renders. Cheap, no
+  # cluster needed (`helm template` is offline). A real k3d install test
+  # lands in phase 4c (tasks.md 7.2).
+  # -------------------------------------------------------------------------
+  helm-lint:
+    name: helm lint + template
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+      - name: helm lint
+        run: helm lint charts/noether
+      - name: helm template (default / dev / airgapped)
+        run: |
+          for overlay in "" "-f charts/noether/values.dev.yaml" "-f charts/noether/values.airgapped.yaml"; do
+            echo "::group::helm template ${overlay:-(default)}"
+            helm template noether charts/noether $overlay > /dev/null
+            echo "::endgroup::"
+          done
+      - name: kubeconform (schema validation)
+        run: |
+          curl -sSL -o /tmp/kc.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kc.tar.gz -C /tmp kubeconform
+          for overlay in "" "-f charts/noether/values.dev.yaml" "-f charts/noether/values.airgapped.yaml"; do
+            echo "::group::kubeconform ${overlay:-(default)}"
+            helm template noether charts/noether $overlay \
+              | /tmp/kubeconform -strict -ignore-missing-schemas -summary
+            echo "::endgroup::"
+          done

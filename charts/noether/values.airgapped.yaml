@@ -1,0 +1,55 @@
+# =============================================================================
+# values.airgapped.yaml — no-egress overlay (SPEC section 7; tasks.md 8.x).
+#
+#   helm install noether ./charts/noether -f charts/noether/values.airgapped.yaml
+#
+# Preconditions (docs/deployment.md "Air-gapped path"):
+#   1. Every image below is mirrored into the in-cluster / on-prem registry
+#      reachable at `global.imageRegistry`.
+#   2. The cluster has no outbound internet.
+#
+# What this overlay enforces:
+#   - OFFLINE_MODE=1 everywhere (no external DNS beyond infra brokers).
+#   - NetworkPolicies on: default-deny + intra-release + cluster DNS only.
+#   - Images are referenced ONLY through the mirror prefix.
+# =============================================================================
+
+global:
+  # MUST be set to the air-gapped registry mirror, e.g.
+  #   --set global.imageRegistry=registry.internal.example.com/
+  # (trailing slash required). Left as a placeholder so a misconfigured
+  # install fails fast on ImagePullBackOff rather than reaching the internet.
+  imageRegistry: "registry.internal/"
+  imagePullPolicy: IfNotPresent
+  offlineMode: 1
+  logLevel: info
+
+# Pin image digests/tags exactly; the mirror must carry these. Keeping the
+# full set here is the one-screen audit the mirror procedure checks against.
+image:
+  repository: noether        # mirror path under global.imageRegistry
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+images:
+  redpanda: redpandadata/redpanda:v24.2.18
+  timescaledb: timescale/timescaledb:2.17.2-pg16
+  qdrant: qdrant/qdrant:v1.13.0
+  neo4j: neo4j:5.26-community
+  ollama: ollama/ollama:0.5.4
+  prometheus: prom/prometheus:v3.0.1
+  grafana: grafana/grafana-oss:11.3.1
+  mlflow: noether-mlflow:0.1.0
+
+# Network-level air-gap enforcement (app-level guard is OFFLINE_MODE=1).
+networkPolicy:
+  enabled: true
+
+# Persistent — air-gapped installs are long-lived prod-style deployments.
+persistence:
+  enabled: true
+
+ingress:
+  enabled: false
+  className: traefik
+  host: noether.local

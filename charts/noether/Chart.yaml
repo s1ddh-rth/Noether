@@ -1,0 +1,34 @@
+apiVersion: v2
+name: noether
+description: >-
+  Noether — air-gapped industrial-anomaly + forecasting platform. Deploys the
+  full stack (ingest, storage-consumer, inference, anomaly-detector, agent,
+  optional frontend) plus its infrastructure (Redpanda, TimescaleDB, Qdrant,
+  Neo4j, Ollama) and ops surface (Prometheus, Grafana, MLflow) to a k3d/k3s
+  cluster.
+type: application
+
+# Chart version tracks the chart; appVersion tracks the Noether release the
+# default image tags point at. Bump appVersion in lockstep with the v0.x tag.
+version: 0.1.0
+appVersion: "0.1.0"
+
+home: https://github.com/s1ddh-rth/Noether
+sources:
+  - https://github.com/s1ddh-rth/Noether
+maintainers:
+  - name: s1ddh-rth
+
+# NOTE on dependencies: the approved design (design.md) floated upstream
+# Redpanda/Qdrant subcharts. We deliberately template all infrastructure
+# in-chart instead — see charts/noether/README.md ("Why no subcharts"):
+# a single flat image list is required for the air-gapped mirror procedure
+# (tasks.md 8.1), and self-contained templates make the "every Pod Ready"
+# guarantee (spec: Helm chart deploys to k3d) verifiable without a network
+# fetch of subchart values. No `dependencies:` block by design.
+keywords:
+  - anomaly-detection
+  - forecasting
+  - timeseries
+  - air-gapped
+  - mlops

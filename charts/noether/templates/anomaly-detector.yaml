@@ -1,0 +1,78 @@
+{{- if .Values.services.anomalyDetector.enabled }}
+{{- $component := "anomaly-detector" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "noether.fullname" . }}-anomaly-detector
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: {{ .Values.services.anomalyDetector.metricsPort }}
+      targetPort: metrics
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.anomalyDetector.replicas }}
+  # Single writer to the shared model-store PVC; recreate to avoid two
+  # pods racing the RWO volume during rollouts.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      initContainers:
+        {{- include "noether.waitFor" (dict "ctx" . "deps" (list "redpanda:9092" "timescaledb:5432")) | nindent 8 }}
+      containers:
+        - name: anomaly-detector
+          image: {{ include "noether.appImage" (dict "ctx" . "svc" "anomaly-detector") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.services.anomalyDetector.metricsPort }}
+          env:
+            {{- include "noether.commonEnv" . | nindent 12 }}
+            {{- include "noether.kafkaEnv" . | nindent 12 }}
+            {{- include "noether.dbEnv" . | nindent 12 }}
+            - name: METRICS_PORT
+              value: {{ .Values.services.anomalyDetector.metricsPort | quote }}
+            - name: MODEL_DIR
+              value: /app/models
+            {{- range $k, $v := .Values.services.anomalyDetector.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: model-store
+              mountPath: /app/models
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.services.anomalyDetector.resources) | nindent 12 }}
+      volumes:
+        - name: model-store
+          persistentVolumeClaim:
+            claimName: {{ include "noether.fullname" . }}-model-store
+{{- end }}

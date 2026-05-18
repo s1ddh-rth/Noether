@@ -1,0 +1,38 @@
+{
+  "title": "Noether — Plant Tags",
+  "uid": "noether-plant-tags",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "XMEAS_1 (last 15m)",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT ts AS time, value FROM tag_samples WHERE tag = 'XMEAS_1' AND ts > NOW() - INTERVAL '15 minutes' ORDER BY ts",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Sample throughput (last 15m, per minute)",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "rawSql": "SELECT time_bucket('1 minute', ts) AS time, count(*) AS samples FROM tag_samples WHERE ts > NOW() - INTERVAL '15 minutes' GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

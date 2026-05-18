@@ -9,14 +9,26 @@
 
 ## 2. Helm chart
 
-- [ ] 2.1 `charts/noether/Chart.yaml` with Redpanda, Qdrant, TimescaleDB
-      subchart deps
-- [ ] 2.2 Templates per service: ingest, storage-consumer, inference,
-      agent, frontend
-- [ ] 2.3 `values.yaml` (default), `values.dev.yaml`,
-      `values.airgapped.yaml`
-- [ ] 2.4 Ingress for frontend; ClusterIP for everything else
-- [ ] 2.5 NetworkPolicies in `values.airgapped.yaml`
+- [x] 2.1 `charts/noether/Chart.yaml` — infra templated in-chart
+      (Redpanda, TimescaleDB, Qdrant, Neo4j, Ollama) instead of subchart
+      deps. Rationale in `charts/noether/README.md` ("Why no subcharts"):
+      a flat image list is required for the air-gap mirror audit (8.1)
+      and self-contained templates make the "every Pod Ready" guarantee
+      verifiable without a network `helm dependency build`. design.md
+      itself flagged subchart values-complexity as the risk we removed.
+- [x] 2.2 Templates per service: ingest, storage-consumer, inference,
+      anomaly-detector, agent. Frontend Deployment/Service/Ingress ship
+      gated `enabled: false` (services/frontend doesn't exist yet — it's
+      the separate add-frontend-dashboard change); flip the flag when it
+      lands. Ops workloads (Prometheus, Grafana, MLflow) templated too.
+- [x] 2.3 `values.yaml` (default), `values.dev.yaml`,
+      `values.airgapped.yaml` — all three lint + template clean.
+- [x] 2.4 Ingress only for frontend (with a fail-guard when
+      `ingress.enabled` without `frontend.enabled`); every other
+      component is ClusterIP.
+- [x] 2.5 NetworkPolicies (default-deny + intra-release + cluster DNS)
+      gated by `networkPolicy.enabled`, set true in
+      `values.airgapped.yaml`.
 
 ## 3. Observability
 
@@ -41,8 +53,10 @@
 
 ## 5. MLflow
 
-- [~] 5.1 MLflow server image in compose + Helm — compose done (custom
-      image, driver baked for air-gap); Helm template lands in phase 4b
+- [x] 5.1 MLflow server image in compose + Helm — compose done (custom
+      image, driver baked for air-gap); Helm Deployment/Service/PVC
+      landed in phase 4b (backend store on the in-cluster Timescale
+      `mlflow` DB, artefacts on a PVC).
 - [x] 5.2 Backend store on Timescale Postgres (separate `mlflow`
       database, created by an idempotent initdb script)
 - [x] 5.3 Artefact store on the mlflow-artifacts volume (configurable
@@ -61,7 +75,9 @@
 ## 7. Tests
 
 - [ ] 7.1 Compose smoke test (every healthcheck passes within budget)
-- [ ] 7.2 `helm template` lints; `helm install` against a real k3d in CI
+- [~] 7.2 `helm lint` + `helm template` (all 3 overlays) + kubeconform
+      schema validation run in CI (`helm-lint` job). `helm install`
+      against a real k3d cluster in CI lands in phase 4c.
 - [ ] 7.3 Air-gapped overlay verified in CI by blocking egress in a
       kind/k3d network policy
 

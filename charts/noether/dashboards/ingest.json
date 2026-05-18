@@ -1,0 +1,48 @@
+{
+  "title": "Noether — Ingest",
+  "uid": "noether-ingest",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Service up",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "noether_service_up{service=\"ingest\"}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "CPU seconds (rate)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 18, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(process_cpu_seconds_total{service=\"ingest\"}[5m])",
+          "legendFormat": "cpu",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Resident memory (bytes)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes{service=\"ingest\"}",
+          "legendFormat": "rss",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

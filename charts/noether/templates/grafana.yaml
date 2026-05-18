@@ -1,0 +1,164 @@
+{{- if .Values.grafana.enabled }}
+{{- $component := "grafana" }}
+{{- $fullname := include "noether.fullname" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" "grafana-provisioning") }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      {{- if .Values.prometheus.enabled }}
+      - name: Prometheus
+        uid: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://{{ $fullname }}-prometheus:{{ .Values.prometheus.port }}
+        isDefault: false
+        editable: true
+        jsonData:
+          httpMethod: POST
+          timeInterval: {{ .Values.prometheus.scrapeInterval }}
+      {{- end }}
+      {{- if .Values.infra.timescaledb.enabled }}
+      - name: TimescaleDB
+        type: postgres
+        access: proxy
+        url: {{ $fullname }}-timescaledb:{{ .Values.postgres.port }}
+        database: {{ .Values.postgres.db }}
+        user: {{ .Values.postgres.user }}
+        secureJsonData:
+          password: ${POSTGRES_PASSWORD}
+        jsonData:
+          sslmode: disable
+          postgresVersion: 1600
+          timescaledb: true
+        isDefault: true
+        editable: true
+      {{- end }}
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: noether
+        type: file
+        folder: Noether
+        options:
+          path: /etc/grafana/provisioning/dashboards/files
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" "grafana-dashboards") }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+data:
+  {{- range $path, $_ := .Files.Glob "dashboards/*.json" }}
+  {{ base $path }}: |
+{{ $.Files.Get $path | indent 4 }}
+  {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-grafana
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.grafana.port }}
+      targetPort: http
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+      annotations:
+        checksum/provisioning: {{ printf "%s|%s|%s|%s" (toYaml .Values.grafana) (toYaml .Values.prometheus) (toYaml .Values.postgres) ((.Files.Glob "dashboards/*.json").AsConfig) | sha256sum }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      securityContext:
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: {{ include "noether.image" (dict "ctx" . "ref" .Values.images.grafana) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.grafana.port }}
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: {{ .Values.grafana.adminUser | quote }}
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "noether.secretName" . }}
+                  key: grafana-admin-password
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: {{ .Values.grafana.anonymous.enabled | quote }}
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: {{ .Values.grafana.anonymous.role | quote }}
+            # Interpolated into the provisioned TimescaleDB datasource.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "noether.secretName" . }}
+                  key: postgres-password
+          volumeMounts:
+            - name: provisioning-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            - name: provisioning-dashboards
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+            - name: dashboard-files
+              mountPath: /etc/grafana/provisioning/dashboards/files
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/grafana
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.grafana.resources) | nindent 12 }}
+      volumes:
+        - name: provisioning-datasources
+          configMap:
+            name: {{ include "noether.componentName" (dict "ctx" . "component" "grafana-provisioning") }}
+            items:
+              - key: datasources.yaml
+                path: datasources.yaml
+        - name: provisioning-dashboards
+          configMap:
+            name: {{ include "noether.componentName" (dict "ctx" . "component" "grafana-provisioning") }}
+            items:
+              - key: dashboards.yaml
+                path: dashboards.yaml
+        - name: dashboard-files
+          configMap:
+            name: {{ include "noether.componentName" (dict "ctx" . "component" "grafana-dashboards") }}
+        - name: data
+          emptyDir: {}
+{{- end }}

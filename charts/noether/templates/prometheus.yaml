@@ -1,0 +1,142 @@
+{{- if .Values.prometheus.enabled }}
+{{- $component := "prometheus" }}
+{{- $fullname := include "noether.fullname" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+data:
+  prometheus.yml: |
+    # Templated from infra/prometheus/prometheus.yml — targets resolved to
+    # in-cluster Service DNS. Disabled services are simply absent.
+    global:
+      scrape_interval: {{ .Values.prometheus.scrapeInterval }}
+      evaluation_interval: {{ .Values.prometheus.scrapeInterval }}
+      external_labels:
+        project: noether
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:{{ .Values.prometheus.port }}"]
+      {{- if .Values.services.inference.enabled }}
+      - job_name: inference
+        static_configs:
+          - targets: ["{{ $fullname }}-inference:{{ .Values.services.inference.port }}"]
+            labels: { service: inference }
+      {{- end }}
+      {{- if .Values.services.agent.enabled }}
+      - job_name: agent
+        static_configs:
+          - targets: ["{{ $fullname }}-agent:{{ .Values.services.agent.port }}"]
+            labels: { service: agent }
+      {{- end }}
+      {{- if .Values.services.ingest.enabled }}
+      - job_name: ingest
+        static_configs:
+          - targets: ["{{ $fullname }}-ingest:{{ .Values.services.ingest.metricsPort }}"]
+            labels: { service: ingest }
+      {{- end }}
+      {{- if .Values.services.storageConsumer.enabled }}
+      - job_name: storage-consumer
+        static_configs:
+          - targets: ["{{ $fullname }}-storage-consumer:{{ .Values.services.storageConsumer.metricsPort }}"]
+            labels: { service: storage-consumer }
+      {{- end }}
+      {{- if .Values.services.anomalyDetector.enabled }}
+      - job_name: anomaly-detector
+        static_configs:
+          - targets: ["{{ $fullname }}-anomaly-detector:{{ .Values.services.anomalyDetector.metricsPort }}"]
+            labels: { service: anomaly-detector }
+      {{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.sizes.prometheus }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-prometheus
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.prometheus.port }}
+      targetPort: http
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+      annotations:
+        # Roll the pod when the scrape config changes (scoped to the
+        # values that render it — a self-include would recurse).
+        checksum/config: {{ printf "%s|%s" (toYaml .Values.services) (toYaml .Values.prometheus) | sha256sum }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      securityContext:
+        # prom/prometheus runs as nobody (65534); the PVC must be writable.
+        fsGroup: 65534
+      containers:
+        - name: prometheus
+          image: {{ include "noether.image" (dict "ctx" . "ref" .Values.images.prometheus) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time={{ .Values.prometheus.retention }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.prometheus.port }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+              readOnly: true
+            - name: data
+              mountPath: /prometheus
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.prometheus.resources) | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+{{- end }}

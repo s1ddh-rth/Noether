@@ -1,0 +1,95 @@
+{{- if .Values.infra.redpanda.enabled }}
+{{- $component := "redpanda" }}
+{{- $svc := printf "%s-redpanda" (include "noether.fullname" .) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svc }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  # Headless: redpanda advertises its own DNS name and needs a stable
+  # per-pod address for the single-node dev-container mode.
+  clusterIP: None
+  ports:
+    - name: kafka
+      port: 9092
+      targetPort: kafka
+    - name: admin
+      port: 9644
+      targetPort: admin
+  selector:
+    {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "noether.componentName" (dict "ctx" . "component" $component) }}
+  labels:
+    {{- include "noether.componentLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  serviceName: {{ $svc }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "noether.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+    spec:
+      {{- include "noether.scheduling" . | nindent 6 }}
+      containers:
+        - name: redpanda
+          image: {{ include "noether.image" (dict "ctx" . "ref" .Values.images.redpanda) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          args:
+            - redpanda
+            - start
+            - --node-id=0
+            - --mode=dev-container
+            - --smp=1
+            - --memory=1G
+            - --reserve-memory=0M
+            - --overprovisioned
+            - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+            - --advertise-kafka-addr=PLAINTEXT://{{ $svc }}:9092
+            - --rpc-addr=0.0.0.0:33145
+            - --advertise-rpc-addr=$(POD_NAME).{{ $svc }}:33145
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: kafka
+              containerPort: 9092
+            - name: admin
+              containerPort: 9644
+            - name: rpc
+              containerPort: 33145
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/redpanda/data
+          readinessProbe:
+            exec:
+              command: ["rpk", "cluster", "health", "--exit-when-healthy"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          resources:
+            {{- include "noether.resources" (dict "ctx" . "res" .Values.infra.redpanda.resources) | nindent 12 }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.sizes.redpanda }}
+{{- end }}
