@@ -83,10 +83,15 @@
       `libs/drift/noether_drift` — typing-debt ratchet noted in-job) ·
       unit (pytest) · integration (compose smoke + k3d e2e) · build
       (7-image matrix) · push to GHCR on `push`/main.
-- [ ] 6.2 Path-filtered eval jobs: forecast harness, AD harness,
-      RAGAS — deferred to 4e (release/benchmarks phase).
-- [ ] 6.3 Render benchmark Markdown into `docs/benchmarks.md` and
-      open a PR if changed (nightly) — 4e.
+- [x] 6.2 `eval.yml`: `dorny/paths-filter` gates the forecast harness
+      (libs/forecasting, services/inference) and anomaly harness
+      (libs/anomaly, services/anomaly-detector) so they run only when
+      that area changes; schedule/dispatch force-run both. (RAGAS needs
+      Qdrant + an LLM corpus — out of the air-gap default; its skeleton
+      is exercised by `eval/tests`, full RAGAS is a post-v0.1 follow-up.)
+- [x] 6.3 Nightly job renders `eval/render_benchmarks.py` into the
+      AUTO-marked block of `docs/benchmarks.md` and opens a PR via
+      `peter-evans/create-pull-request` if it changed.
 - [x] 6.4 `docker/metadata-action`: `:latest` on main, `:sha`, and
       `{{version}}`/`{{major}}.{{minor}}` semver on release tags;
       pushes only on `push` events (PRs build-only, no creds).
@@ -112,18 +117,32 @@
       renders under `global.imageRegistry`).
 - [x] 8.2 `OFFLINE_MODE=1` + mirror prefix set in the airgapped
       overlay (4b); drift job inherits it via `commonEnv`.
-- [ ] 8.3 Documentation of mirror procedure in `docs/deployment.md`
+- [x] 8.3 `docs/deployment.md` §3 "Air-gapped → Mirror procedure":
+      enumerate-images command, build/push the `noether-*` images,
+      `skopeo` the infra images, install with `global.imageRegistry`.
 
 ## 9. Eval / Benchmarks
 
-- [ ] 9.1 Nightly job runs all three harnesses and updates
-      `docs/benchmarks.md`
+- [x] 9.1 Nightly `eval.yml` runs the forecast + anomaly harnesses
+      (full) and refreshes `docs/benchmarks.md` via PR. RAGAS excluded
+      (needs Qdrant + LLM corpus, out of the air-gap default) — noted
+      under 6.2 as a post-v0.1 follow-up.
 
 ## 10. Docs
 
-- [ ] 10.1 `docs/deployment.md`: compose, Helm, k3d, air-gapped path
-- [ ] 10.2 README finalised: hero GIF, badges, capabilities, quickstart,
-      benchmarks, deployment, roadmap
-- [ ] 10.3 3-minute Loom video link embedded in README
-- [ ] 10.4 LICENSE (Apache 2.0) and CONTRIBUTING.md committed
-- [ ] 10.5 Tag `v0.1.0`
+- [x] 10.1 `docs/deployment.md` rewritten: compose (profiles table) ·
+      k3d + Helm (overlays, local-image flow, the CI proof) ·
+      air-gapped (mirror procedure).
+- [x] 10.2 README finalised: capabilities updated for M4, deployment
+      pointer, roadmap marks M3/M4 shipped, OpenSpec status table
+      corrected. (Hero GIF / recorded demo are a human follow-up —
+      see 10.3.)
+- [~] 10.3 A recorded walk-through needs a human in front of the live
+      stack; CI cannot produce it. Documented in the README as an
+      explicit post-v0.1 follow-up rather than shipping a dead link.
+- [x] 10.4 `LICENSE` (Apache 2.0) and `CONTRIBUTING.md` present at
+      repo root (committed in earlier milestones; verified).
+- [ ] 10.5 Tag `v0.1.0` — a release tag is cut from `main` **after**
+      this PR merges and `openspec archive add-ops-stack` runs. It
+      must not be tagged from the feature branch; this is the documented
+      final release step, executed post-merge.

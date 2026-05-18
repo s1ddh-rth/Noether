@@ -35,10 +35,14 @@
 - **One command stand-up** — `make up` brings the whole stack online
   in &lt;60 s after image pull.
 
-What's *not* here yet (planned, see [Roadmap](#roadmap)): RAG corpus + agent
-system (M3), Helm chart + drift monitoring + MLflow + CI/CD (M4), real
-Tennessee Eastman simulator (separate change proposal), torch-backed
-AutoEncoder detector.
+- **Self-hosted MLflow**, a **Helm chart** (`charts/noether/`) that
+  deploys the whole stack to k3d/k3s with dev / air-gapped overlays,
+  **Evidently drift monitoring** (CronJob → Grafana), and **CI/CD**
+  (lint · type · test · compose smoke · k3d e2e · image build/push).
+
+What's *not* here yet (planned, see [Roadmap](#roadmap)): the Next.js
+frontend (`add-frontend-dashboard`), the real Tennessee Eastman
+simulator (separate change proposal), torch-backed AutoEncoder detector.
 
 ---
 
@@ -169,10 +173,10 @@ proposal under [`openspec/changes/`](openspec/changes/). Proposals contain
 | [`add-forecasting-service`](openspec/changes/add-forecasting-service/) | shipped (LGBM half) | `forecasting-service` |
 | [`add-patchtst-ensemble`](openspec/changes/add-patchtst-ensemble/) | shipped | modifies `forecasting-service` |
 | [`add-anomaly-detection`](openspec/changes/add-anomaly-detection/) | shipped (sans AutoEncoder) | `anomaly-detection` |
-| [`add-rag-pipeline`](openspec/changes/add-rag-pipeline/) | proposed | `rag-pipeline` (M3) |
-| [`add-agent-system`](openspec/changes/add-agent-system/) | proposed | `agent-system` (M3) |
-| [`add-frontend-dashboard`](openspec/changes/add-frontend-dashboard/) | proposed | `frontend-dashboard` (M3 / M4) |
-| [`add-ops-stack`](openspec/changes/add-ops-stack/) | proposed | `ops-stack` (M4) |
+| [`add-rag-pipeline`](openspec/changes/archive/2026-05-01-add-rag-pipeline/) | shipped (archived) | `rag-pipeline` (M3) |
+| [`add-agent-system`](openspec/changes/archive/2026-05-17-add-agent-system/) | shipped (archived) | `agent-system` (M3) |
+| [`add-frontend-dashboard`](openspec/changes/add-frontend-dashboard/) | proposed | `frontend-dashboard` (post-v0.1) |
+| [`add-ops-stack`](openspec/changes/add-ops-stack/) | shipped (M4 — this change) | `ops-stack` (M4) |
 
 ---
 
@@ -221,11 +225,14 @@ without an OpenSpec change):
 |---|---|---|
 | **M1** | docker compose stack + ingest → storage → /forecast + eval | **shipped** |
 | **M2** | Anomaly detection ensemble + SHAP + AD eval harness | **shipped (sans AutoEncoder; follow-up)** |
-| M3 | RAG (Qdrant + reranker) + LangGraph agent + Graphiti memory | proposed |
-| M4 | Helm chart + drift monitoring + MLflow + CI/CD + final polish | proposed |
+| **M3** | RAG (Qdrant + reranker) + LangGraph agent + Graphiti memory | **shipped** |
+| **M4** | Helm chart + drift monitoring + MLflow + CI/CD + final polish | **shipped** |
 
-After M4, the repo is `v0.1.0` and the README gains a hero GIF, a 3-minute
-Loom demo, and a benchmarks block populated by CI.
+M4 completes the v0.1 scope. The benchmarks block in
+[`docs/benchmarks.md`](docs/benchmarks.md) is refreshed by the nightly
+eval job. A recorded walk-through demo is tracked as a post-v0.1
+follow-up (it needs a human in front of the stack — not something CI
+can produce).
 
 ---
 
