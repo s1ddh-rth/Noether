@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 import pytest
 
 from eval.render_benchmarks import END, START, render, splice
@@ -44,12 +42,20 @@ _ANOMALY = [
 
 
 def test_render_contains_both_tables_and_skipped_note() -> None:
-    out = render(_FORECAST, _ANOMALY, now=datetime(2026, 5, 18, 3, 17, tzinfo=UTC))
-    assert "2026-05-18 03:17 UTC" in out
+    out = render(_FORECAST, _ANOMALY)
     assert "### Forecast" in out and "### Anomaly detection" in out
     assert "XMEAS_1 | lgbm" in out
     assert "| 1 | step |" in out
     assert "Skipped models: patchtst, ensemble" in out
+
+
+def test_render_is_timestamp_free_and_idempotent() -> None:
+    # No wall-clock in the output → the nightly PR only opens when the
+    # numbers actually move (review finding on PR #20).
+    a = render(_FORECAST, _ANOMALY)
+    b = render(_FORECAST, _ANOMALY)
+    assert a == b
+    assert "UTC" not in a
 
 
 def test_render_handles_missing_inputs() -> None:

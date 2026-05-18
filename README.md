@@ -173,8 +173,8 @@ proposal under [`openspec/changes/`](openspec/changes/). Proposals contain
 | [`add-forecasting-service`](openspec/changes/add-forecasting-service/) | shipped (LGBM half) | `forecasting-service` |
 | [`add-patchtst-ensemble`](openspec/changes/add-patchtst-ensemble/) | shipped | modifies `forecasting-service` |
 | [`add-anomaly-detection`](openspec/changes/add-anomaly-detection/) | shipped (sans AutoEncoder) | `anomaly-detection` |
-| [`add-rag-pipeline`](openspec/changes/archive/) | shipped (archived) | `rag-pipeline` (M3) |
-| [`add-agent-system`](openspec/changes/archive/) | shipped (archived) | `agent-system` (M3) |
+| [`add-rag-pipeline`](openspec/changes/archive/2026-05-01-add-rag-pipeline/) | shipped (archived) | `rag-pipeline` (M3) |
+| [`add-agent-system`](openspec/changes/archive/2026-05-17-add-agent-system/) | shipped (archived) | `agent-system` (M3) |
 | [`add-frontend-dashboard`](openspec/changes/add-frontend-dashboard/) | proposed | `frontend-dashboard` (post-v0.1) |
 | [`add-ops-stack`](openspec/changes/add-ops-stack/) | shipped (M4 — this change) | `ops-stack` (M4) |
 
