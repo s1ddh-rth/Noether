@@ -3,7 +3,9 @@
 # runtime image (no node_modules copied, no network at runtime).
 FROM node:20-alpine AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
-RUN corepack enable
+# Pin pnpm to the version in package.json#packageManager (corepack's
+# latest pnpm needs a newer Node than the alpine 20 base).
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 # --- deps -------------------------------------------------------------------
 FROM base AS deps
