@@ -125,12 +125,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: forecast-results
           path: eval/results
         continue-on-error: true
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: anomaly-results
           path: eval/results
