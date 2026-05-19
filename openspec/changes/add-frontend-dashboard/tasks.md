@@ -35,11 +35,17 @@
 
 ## 4. Dashboard page
 
-- [ ] 4.1 SWR hook `useLatestTags` (1 s polling)
-- [ ] 4.2 SWR hook `useRecentAnomalies` (5 s polling)
-- [ ] 4.3 `<TagTile>` component with sparkline (Recharts)
-- [ ] 4.4 `<AnomalyPanel>` listing alerts, newest first
-- [ ] 4.5 Stale indicator (>30 s old)
+- [x] 4.1 `useLatestTags` SWR hook — `/api/tags/latest`, 1 s
+      `refreshInterval` (`lib/hooks.ts`).
+- [x] 4.2 `useRecentAnomalies` SWR hook — `/api/anomalies/recent`,
+      5 s. (Plus `useTagRange` at 15 s for sparklines so 52 tiles
+      don't hammer the BFF at 1 s.)
+- [x] 4.3 `<TagTile>` — tag id, value (3 dp), Recharts sparkline
+      from the 5-min range; presentational (`now` injectable for tests).
+- [x] 4.4 `<AnomalyPanel>` — latest 20, newest first, time/score/
+      tags; empty + error states.
+- [x] 4.5 Stale indicator: sample age > 30 s → `data-stale="true"`
+      + visible "stale" badge + danger border (spec scenario).
 
 ## 5. Chat page
 
@@ -52,7 +58,9 @@
 
 ## 6. Tests
 
-- [ ] 6.1 Vitest: `<TagTile>` renders value, sparkline, stale state
+- [x] 6.1 Vitest: `<TagTile>` — value to 3 dp, sparkline svg present,
+      fresh vs stale (`data-stale`/badge). 4 tests, `vitest.config.ts`
+      + jsdom + `@testing-library`. (CI vitest job lands in phase 4.)
 - [ ] 6.2 Vitest: `<VegaChart>` renders valid spec, falls back on
       malformed
 - [ ] 6.3 Playwright (smoke): dashboard loads against compose stack;
