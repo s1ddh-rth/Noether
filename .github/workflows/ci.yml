@@ -337,6 +337,7 @@ jobs:
             --set services.inference.enabled=false \
             --set services.anomalyDetector.enabled=false \
             --set services.agent.enabled=false \
+            --set services.frontend.enabled=false \
             --set infra.neo4j.enabled=false \
             --set infra.ollama.enabled=false \
             --set mlflow.enabled=false \
