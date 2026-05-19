@@ -77,17 +77,32 @@
       (embed mocked), embed-reject → fallback + `<details>` raw spec,
       non-object spec → fallback without calling embed. 3 tests
       (7 total in the suite, all pass).
-- [ ] 6.3 Playwright (smoke): dashboard loads against compose stack;
-      chat turn returns an answer
-- [ ] 6.4 Coverage >=70% on components in `services/frontend/`
+- [x] 6.3 Playwright smoke (`e2e/smoke.spec.ts`, `playwright.config.ts`)
+      against compose `core`: dashboard renders ≥1 tile + the anomaly
+      panel; nav → `/chat`, a turn echoes + resolves to a reply or the
+      graceful error (agent isn't in `core` → no LLM in CI; non-crash
+      is the invariant). New CI `frontend-e2e` job (path-filtered,
+      fork-guarded).
+- [x] 6.4 Vitest v8 coverage gated ≥70% on `components/**`
+      (`thresholds` in `vitest.config.ts`); current 100 % lines /
+      98 % statements / 82 % branches / 100 % funcs across 5 suites
+      (3 added this phase) / 15 tests. New CI `frontend` job runs
+      `test:coverage` + lint + tsc + build.
 
 ## 7. Air-gap
 
-- [ ] 7.1 No external CDN/font/script references in built output
-- [ ] 7.2 Document local font bundle in `services/frontend/README.md`
+- [x] 7.1 No external CDN/font/script: `next/font/local` only
+      (committed `app/fonts/*.woff`), no `next/font/google`, no CDN
+      `<script>`. Verified by the air-gap grep in prior-phase reviews.
+- [x] 7.2 `services/frontend/README.md` "Air-gap" section documents
+      the self-hosted font bundle + same-origin serving.
 
 ## 8. Docs
 
-- [ ] 8.1 `services/frontend/README.md`: dev run, build, env vars
-- [ ] 8.2 Frontend section added to `docs/architecture.md`
-- [ ] 8.3 Hero GIF capture step noted for the README finalisation pass
+- [x] 8.1 `services/frontend/README.md`: dev run, build, env vars,
+      testing, air-gap, Docker/Helm.
+- [x] 8.2 "Frontend (add-frontend-dashboard — live)" section added to
+      `docs/architecture.md` (routes, BFF, air-gap, SSE-readiness).
+- [x] 8.3 Recorded-demo/hero-media remains the post-v0.1 follow-up
+      already noted in the top-level README roadmap (CI can't produce
+      a video — same call as the M4 release pass; no dead link).

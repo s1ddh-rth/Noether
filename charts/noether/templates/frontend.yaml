@@ -41,13 +41,19 @@ spec:
               containerPort: {{ .Values.services.frontend.port }}
           env:
             {{- include "noether.commonEnv" . | nindent 12 }}
-            - name: NEXT_PUBLIC_INFERENCE_URL
-              value: http://{{ include "noether.fullname" . }}-inference:{{ .Values.services.inference.port }}
-            - name: NEXT_PUBLIC_AGENT_URL
+            # BFF queries Timescale directly (server-side) and proxies
+            # /api/chat to the agent — same env as the compose service.
+            {{- include "noether.dbEnv" . | nindent 12 }}
+            - name: AGENT_URL
               value: http://{{ include "noether.fullname" . }}-agent:{{ .Values.services.agent.port }}
+            - name: AGENT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "noether.secretName" . }}
+                  key: agent-api-key
           readinessProbe:
             httpGet:
-              path: /
+              path: /dashboard
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10

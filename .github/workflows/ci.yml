@@ -243,19 +243,31 @@ jobs:
       matrix:
         include:
           - name: noether-ingest
+            context: "."
             dockerfile: services/ingest/Dockerfile
           - name: noether-storage-consumer
+            context: "."
             dockerfile: services/storage-consumer/Dockerfile
           - name: noether-inference
+            context: "."
             dockerfile: services/inference/Dockerfile
           - name: noether-anomaly-detector
+            context: "."
             dockerfile: services/anomaly-detector/Dockerfile
           - name: noether-agent
+            context: "."
             dockerfile: services/agent/Dockerfile
           - name: noether-mlflow
+            context: "."
             dockerfile: infra/mlflow/Dockerfile
           - name: noether-drift
+            context: "."
             dockerfile: infra/drift/Dockerfile
+          # Frontend is a self-contained pnpm project — its Dockerfile
+          # expects services/frontend as the build context.
+          - name: noether-frontend
+            context: services/frontend
+            dockerfile: Dockerfile
     steps:
       - uses: actions/checkout@v6
       - name: Free runner disk
@@ -283,8 +295,8 @@ jobs:
       - name: Build${{ github.event_name == 'push' && ' + push' || '' }}
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ${{ matrix.dockerfile }}
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -325,6 +337,7 @@ jobs:
             --set services.inference.enabled=false \
             --set services.anomalyDetector.enabled=false \
             --set services.agent.enabled=false \
+            --set services.frontend.enabled=false \
             --set infra.neo4j.enabled=false \
             --set infra.ollama.enabled=false \
             --set mlflow.enabled=false \
@@ -367,3 +380,87 @@ jobs:
       - name: Tear down
         if: always()
         run: k3d cluster delete noether || true
+
+  # -------------------------------------------------------------------------
+  # Frontend — pnpm lint + vitest (coverage-gated ≥70% on components/) +
+  # next build. Fast, no browser. Path-filtered so it only runs when the
+  # frontend changes.
+  # -------------------------------------------------------------------------
+  frontend:
+    name: frontend (lint + test + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: |
+            fe:
+              - 'services/frontend/**'
+      - if: steps.f.outputs.fe == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - if: steps.f.outputs.fe == 'true'
+        name: pnpm install + checks
+        working-directory: services/frontend
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm lint
+          pnpm exec tsc --noEmit
+          pnpm exec prettier --check .
+          pnpm test:coverage
+          NEXT_TELEMETRY_DISABLED=1 pnpm build
+
+  # -------------------------------------------------------------------------
+  # Frontend e2e — Playwright smoke against the compose `core` stack
+  # (frontend on :3001). The agent isn't in core, so the chat test
+  # asserts a non-crash round-trip (reply or graceful error). Path-
+  # filtered + fork-guarded like compose-smoke.
+  # -------------------------------------------------------------------------
+  frontend-e2e:
+    name: frontend e2e (playwright)
+    runs-on: ubuntu-latest
+    needs: [frontend]
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: |
+            fe:
+              - 'services/frontend/**'
+      - if: steps.f.outputs.fe == 'true'
+        name: Free runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+                       /usr/local/share/boost /opt/hostedtoolcache
+      - if: steps.f.outputs.fe == 'true'
+        name: Bring up the core stack (incl. frontend)
+        run: |
+          cp .env.example .env
+          docker compose --profile core up -d --build --wait --wait-timeout 600 \
+            || (docker compose --profile core ps && docker compose --profile core logs --tail=100 && exit 1)
+      - if: steps.f.outputs.fe == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - if: steps.f.outputs.fe == 'true'
+        name: Playwright smoke
+        working-directory: services/frontend
+        env:
+          BASE_URL: http://localhost:3001
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          pnpm e2e
+      - if: ${{ always() && steps.f.outputs.fe == 'true' }}
+        name: Tear down
+        run: docker compose --profile core down -v
