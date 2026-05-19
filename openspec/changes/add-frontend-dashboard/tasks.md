@@ -30,8 +30,11 @@
       for sparklines; tag id validated against `^[A-Za-z0-9_]{1,64}$`.
 - [x] 3.3 `app/api/anomalies/recent/route.ts` — latest 20
       `tag_anomalies` rows, newest first.
-- [ ] 3.4 `app/api/chat/route.ts` proxies to `services/agent` (JSON;
-      SSE-ready) — phase 3 (the chat page lands with it).
+- [x] 3.4 `app/api/chat/route.ts` proxies `POST` to `${AGENT_URL}/chat`
+      injecting `X-API-Key` server-side (never reaches the browser);
+      validates body; clean 502 when the agent is down; passes the
+      agent JSON through (SSE-ready — comment explains the swap when
+      the agent gains streaming).
 
 ## 4. Dashboard page
 
@@ -49,20 +52,31 @@
 
 ## 5. Chat page
 
-- [ ] 5.1 Per-tab `session_id` (sessionStorage)
-- [ ] 5.2 Message list, input, send
-- [ ] 5.3 SSE handler with JSON fallback
-- [ ] 5.4 Citations footer rendering
-- [ ] 5.5 `<VegaChart>` client component using `vega-embed`
-- [ ] 5.6 Error boundary around `<VegaChart>`
+- [x] 5.1 Per-tab `session_id` — `sessionStorage` + `crypto.randomUUID`
+      on first load.
+- [x] 5.2 Message list (user/assistant bubbles), input + Send form,
+      busy/thinking + error states, autoscroll.
+- [x] 5.3 JSON request/response. The agent is JSON-only today (its
+      router defers SSE); the BFF + client are structured so streaming
+      slots in without a client rewrite. Spec's SSE scenario is
+      explicitly conditional ("WHEN the agent supports SSE").
+- [x] 5.4 Citations rendered as a footer list under the answer.
+- [x] 5.5 `<VegaChart>` — dynamically imports `vega-embed` (keeps it
+      out of the initial bundle; `/chat` is 1.96 kB), renders agent
+      `vega_spec`.
+- [x] 5.6 `<ErrorBoundary>` wraps `<VegaChart>`; VegaChart itself
+      validates the spec + try/catches embed → fallback message +
+      `<details>` raw spec (spec "malformed spec is contained").
 
 ## 6. Tests
 
 - [x] 6.1 Vitest: `<TagTile>` — value to 3 dp, sparkline svg present,
       fresh vs stale (`data-stale`/badge). 4 tests, `vitest.config.ts`
       + jsdom + `@testing-library`. (CI vitest job lands in phase 4.)
-- [ ] 6.2 Vitest: `<VegaChart>` renders valid spec, falls back on
-      malformed
+- [x] 6.2 Vitest: `<VegaChart>` — valid spec renders the container
+      (embed mocked), embed-reject → fallback + `<details>` raw spec,
+      non-object spec → fallback without calling embed. 3 tests
+      (7 total in the suite, all pass).
 - [ ] 6.3 Playwright (smoke): dashboard loads against compose stack;
       chat turn returns an answer
 - [ ] 6.4 Coverage >=70% on components in `services/frontend/`
