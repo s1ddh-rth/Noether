@@ -141,7 +141,7 @@ jobs:
       - name: Render benchmarks
         run: python -m eval.render_benchmarks
       - name: Open PR if changed
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "docs(benchmarks): nightly eval refresh"
           title: "docs(benchmarks): nightly eval refresh"
