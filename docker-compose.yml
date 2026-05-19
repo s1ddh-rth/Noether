@@ -332,6 +332,38 @@ services:
       retries: 12
     networks: [noether]
 
+  # ------------------------------------------------ frontend (Next.js)
+  # Operator UI: /dashboard (live tags + anomalies) and /chat (agent).
+  # Host 3001 because Grafana already owns 3000. In `core` the dashboard
+  # works (Timescale only); `/chat` needs the `agent` profile.
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: noether-frontend
+    profiles: [core, agent]
+    environment:
+      <<: *common-env
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-noether}
+      POSTGRES_USER: ${POSTGRES_USER:-noether}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      AGENT_URL: http://agent:8100
+      AGENT_API_KEY: ${AGENT_API_KEY:-}
+    ports:
+      - "3001:3000"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/dashboard').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [noether]
+
   # --------------------------------------------------------------- Prometheus
   # Scrapes /metrics off every Noether service. One scrape config covers all
   # profiles; targets not in the active profile just read as `down`.

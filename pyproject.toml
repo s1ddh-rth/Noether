@@ -37,6 +37,10 @@ dev = [
 
 [tool.uv.workspace]
 members = ["libs/*", "services/*"]
+# services/frontend is a Next.js (pnpm) project, not a Python package —
+# exclude it so uv doesn't treat it as a workspace member and fail on
+# the missing pyproject.toml.
+exclude = ["services/frontend"]
 
 [tool.uv.sources]
 noether-ingest = { workspace = true }

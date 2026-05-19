@@ -10,8 +10,11 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Anchored to repo root: these are the Python build/venv dirs (next to
+# wheels/, *.egg-info). Un-anchored they also matched
+# services/frontend/lib/ and silently dropped the BFF source.
+/lib/
+/lib64/
 parts/
 sdist/
 var/

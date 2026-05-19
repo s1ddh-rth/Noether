@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark by default — industrial dashboards default dark; no toggle at
+   v0.1 (design.md). Fixed palette, not prefers-color-scheme. */
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --panel: #141414;
+  --border: #262626;
+  --muted: #8a8a8a;
+  --accent: #4ade80;
+  --danger: #f87171;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

@@ -1,23 +1,37 @@
 ## 1. Scaffolding
 
-- [ ] 1.1 `npx create-next-app@14 services/frontend --ts --tailwind
-      --app --no-src --no-eslint`
-- [ ] 1.2 Re-enable ESLint with Next defaults; add Prettier config
-- [ ] 1.3 `pnpm` workspace integration; pin Node 20+
-- [ ] 1.4 Add `Dockerfile` (standalone output) and compose entry
+- [x] 1.1 `create-next-app@14 services/frontend --ts --tailwind --app
+      --no-src-dir --no-eslint --use-pnpm` (Next 14.2.35).
+- [x] 1.2 ESLint re-enabled (`next/core-web-vitals` + `prettier`);
+      Prettier config + ignore; `format`/`format:check` scripts.
+      eslint-config-next pinned to 14.2.35 (matches Next 14).
+- [x] 1.3 pnpm project (`.npmrc node-linker=hoisted` — required for
+      Next + pnpm prerender of `/404`,`/500`); `engines.node >=20`.
+      (Standalone JS app — not part of the uv/Python workspace.)
+- [x] 1.4 `Dockerfile` (multi-stage, Next standalone runtime, non-root)
+      + `.dockerignore`; compose `frontend` service (host `:3001`,
+      profiles `core`+`agent`, Timescale healthcheck dep).
 
 ## 2. Theme and shell
 
-- [ ] 2.1 Tailwind base + dark default; minimal layout in `app/layout.tsx`
-- [ ] 2.2 Global header with route nav (`/dashboard`, `/chat`)
-- [ ] 2.3 Bundle a self-hosted variable font (no Google Fonts)
+- [x] 2.1 Tailwind + fixed dark palette in `globals.css`; minimal
+      `app/layout.tsx` shell (header + centered main).
+- [x] 2.2 `components/Header.tsx` — client nav with active-route
+      highlight (`/dashboard`, `/chat`); `/` redirects to `/dashboard`.
+- [x] 2.3 Self-hosted Geist variable fonts via `next/font/local`
+      (bundled `app/fonts/*.woff`) — no Google Fonts / external fetch.
 
 ## 3. BFF API routes
 
-- [ ] 3.1 `app/api/tags/latest/route.ts` → backend storage query
-- [ ] 3.2 `app/api/tags/[tag]/range/route.ts` for sparklines
-- [ ] 3.3 `app/api/anomalies/recent/route.ts` → latest 20 alerts
-- [ ] 3.4 `app/api/chat/route.ts` proxies to `services/agent` (JSON + SSE)
+- [x] 3.1 `app/api/tags/latest/route.ts` — `DISTINCT ON (tag)` newest
+      sample per tag via the shared `pg` pool (`lib/db.ts`,
+      `server-only`), `force-dynamic`, `no-store`.
+- [x] 3.2 `app/api/tags/[tag]/range/route.ts` — last 5 min of a tag
+      for sparklines; tag id validated against `^[A-Za-z0-9_]{1,64}$`.
+- [x] 3.3 `app/api/anomalies/recent/route.ts` — latest 20
+      `tag_anomalies` rows, newest first.
+- [ ] 3.4 `app/api/chat/route.ts` proxies to `services/agent` (JSON;
+      SSE-ready) — phase 3 (the chat page lands with it).
 
 ## 4. Dashboard page
 
