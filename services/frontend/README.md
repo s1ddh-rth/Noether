@@ -21,11 +21,11 @@ pnpm build            # standalone output
 
 ## Env vars
 
-| Var | Default | Used by |
-|-----|---------|---------|
+| Var                                   | Default                                    | Used by                   |
+| ------------------------------------- | ------------------------------------------ | ------------------------- |
 | `POSTGRES_HOST/PORT/DB/USER/PASSWORD` | `timescaledb`/`5432`/`noether`/`noether`/— | BFF tag + anomaly queries |
-| `AGENT_URL` | `http://agent:8100` | chat proxy (phase 3) |
-| `AGENT_API_KEY` | — | chat proxy auth (phase 3) |
+| `AGENT_URL`                           | `http://agent:8100`                        | chat proxy (phase 3)      |
+| `AGENT_API_KEY`                       | —                                          | chat proxy auth (phase 3) |
 
 ## Docker
 
