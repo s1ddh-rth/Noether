@@ -147,12 +147,11 @@ services:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: "2", memory: 2Gi }
 
-  # Frontend is not built yet (separate add-frontend-dashboard change). The
-  # Deployment/Service/Ingress templates ship now so the wiring is ready;
-  # flip enabled=true once services/frontend exists and CI publishes its
-  # image.
+  # Next.js operator UI (add-frontend-dashboard, shipped). Image
+  # ghcr.io/<owner>/noether-frontend is published by the CI `images`
+  # matrix. Enable the Ingress separately (ingress.enabled=true).
   frontend:
-    enabled: false
+    enabled: true
     replicas: 1
     port: 3000
     resources: {}

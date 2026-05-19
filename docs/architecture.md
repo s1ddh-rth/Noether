@@ -103,11 +103,34 @@ Memory backend: `GraphitiStore` serialises each fact as a tagged episode
 `add_episode`, then reverse-engineers `MemoryFact`s from the
 `EntityEdge` results. Per-session scoping via the `[session=...]` tag.
 
+## Frontend (add-frontend-dashboard — live)
+
+Next.js 14 App Router (`services/frontend`, TypeScript + Tailwind,
+pnpm). Two routes:
+
+- `/dashboard` — a grid of `<TagTile>` (tag id, value, Recharts
+  5-min sparkline, `data-stale` >30 s) + an `<AnomalyPanel>`. SWR
+  polling: tags 1 s, anomalies 5 s, per-tile range 15 s.
+- `/chat` — operator chat: per-tab `session_id` (sessionStorage),
+  message list, citations footer, and `<VegaChart>` (lazy
+  `vega-embed`, wrapped in an `<ErrorBoundary>`; malformed specs fall
+  back to a message + raw-spec `<details>`).
+
+**BFF.** Route handlers under `app/api/*` keep all backend access
+server-side. Tag/anomaly endpoints query TimescaleDB directly via a
+pooled `pg` client (`lib/db.ts`, `server-only`); `/api/chat` proxies
+to `services/agent` injecting `X-API-Key` server-side. The browser
+only ever sees the shaped JSON in `lib/types.ts` — no DB creds, no
+agent key. Air-gapped: self-hosted Geist fonts (`next/font/local`),
+no Google Fonts / CDN; standalone Docker output.
+
+The agent is JSON-only today; the chat client + proxy are structured
+so SSE slots in when the agent gains streaming (see below).
+
 ## Out of M3 (planned)
 
 - SSE streaming on `/chat` (orchestrator needs to yield intermediate
-  events; deferred from v0.1)
-- Frontend chat surface (Next.js, M3 wrap-up)
+  events; deferred from v0.1) — the frontend already tolerates it
 - Memory retriever node (pull prior facts into state at session entry)
 - Prometheus exporters in every service (M4 — agent has them now)
 - MLflow model registry (M4)
