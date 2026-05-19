@@ -84,9 +84,10 @@
       is the invariant). New CI `frontend-e2e` job (path-filtered,
       fork-guarded).
 - [x] 6.4 Vitest v8 coverage gated ≥70% on `components/**`
-      (`thresholds` in `vitest.config.ts`); current 98 % lines /
-      82 % branches / 100 % funcs across 5 suites / 15 tests. New CI
-      `frontend` job runs `test:coverage` + lint + tsc + build.
+      (`thresholds` in `vitest.config.ts`); current 100 % lines /
+      98 % statements / 82 % branches / 100 % funcs across 5 suites
+      (3 added this phase) / 15 tests. New CI `frontend` job runs
+      `test:coverage` + lint + tsc + build.
 
 ## 7. Air-gap
 
